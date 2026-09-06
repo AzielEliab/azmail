@@ -22,16 +22,26 @@ or a guaranteed phishing block. v0.1 does not send internet email.
 
 Always send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent.
 
-Anonymous mesh chat + mail ops run via
-[aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate
-([kernel](https://github.com/AzielEliab/fraggate)). Engine lands in a sibling
-PR. This Worker exposes OpenAPI stubs that point at the runtime.
+**Agent path is FragGate only.** MCP / agents call aziel-runtime — not a
+separate mail MCP on this Worker, and not `POST /mcp` here.
+
+```
+POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call
+{"slug":"azmail","op":"<classify|scrub|mesh_enable|mesh_disable|broadcast|listen|keyword_alerts>","payload":{}}
+```
+
+Same door as the `fraggate_call` MCP tool (`slug=azmail`). Kernel:
+https://github.com/AzielEliab/fraggate. Engine lands in a sibling
+aziel-runtime PR. Until then FragGate may refuse; Worker `/v1` stubs stay
+human-demo only.
+
+**Human UI stays on this Worker / `azmail ui`.** AI path is FragGate.
 
 Mesh is **off by default**. `mesh_disable` is the easy off-switch. Broadcasts
 refuse doxxing and credential-harvest content. Handles are `anon-…` (no PII).
 Keyword alerts fire without revealing identity.
 
-## Endpoints (this Worker)
+## Human Worker (not the agent door)
 
 Host: `https://azmail-download-tracker.vibelock.workers.dev`
 
@@ -40,47 +50,39 @@ Host: `https://azmail-download-tracker.vibelock.workers.dev`
 | GET | `/v1/health` | Liveness. Does not increment downloads. |
 | GET | `/v1/skill` | This markdown. Does not increment downloads. |
 | GET | `/v1/example` | Sample airlock payload. |
-| POST | `/v1/classify` | Advisory APP classify. Not stored. |
-| POST | `/v1/scrub` | Strip tracking pixels / scripts / hidden redirects. Not stored. |
-| POST | `/v1/keyword-alerts` | Match keywords without revealing identity. |
-| POST | `/v1/mesh/enable` | Stub → FragGate `mesh_enable`. |
-| POST | `/v1/mesh/disable` | Off-switch (default / easy off). |
-| POST | `/v1/mesh/broadcast` | Stub. Refuses when mesh is off, or doxxing / credential harvest. |
-| POST | `/v1/mesh/listen` | Stub. Refuses when mesh is off. |
+| POST | `/v1/classify` | Human-UI demo classify. Not stored. Not the agent door. |
+| POST | `/v1/scrub` | Human-UI demo scrub. Not stored. |
+| POST | `/v1/keyword-alerts` | Demo match. Agents use FragGate `keyword_alerts`. |
+| POST | `/v1/mesh/*` | Stubs that point at FragGate. Off by default. |
 
-OpenAPI: https://azmail-download-tracker.vibelock.workers.dev/openapi.json
-
-Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json
-
-MCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`
+There is **no** AZMail MCP outside FragGate. `POST /mcp` on this host
+returns a pointer to `/v1/fraggate/call`.
 
 Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude
 (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing,
 Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces,
 Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable
-assistants.
-
-ChatGPT: GPT Actions → Import from URL (no auth). Grok: import the OpenAPI as
-a custom tool, or MCP. Venice: HTTP tools. Claude, Cursor, Glama, and other
-MCP clients: `POST` the catalog MCP URL. Other OpenAPI-capable assistants:
-import the same OpenAPI.
+assistants — **via FragGate** (`fraggate_call` / `POST /v1/fraggate/call`).
 
 ## How to call (Mozilla/5.0)
 
+Agent / MCP (FragGate only):
+
 ```bash
-curl -s -A 'Mozilla/5.0' https://azmail-download-tracker.vibelock.workers.dev/v1/health
-curl -s -A 'Mozilla/5.0' -X POST https://azmail-download-tracker.vibelock.workers.dev/v1/classify \
+curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call \
   -H 'content-type: application/json' \
-  -d '{"from":"help@paypa1-verify.com","subject":"URGENT verify your account","body_text":"reset your password immediately"}'
-curl -s -A 'Mozilla/5.0' -X POST https://azmail-download-tracker.vibelock.workers.dev/v1/mesh/disable -d '{}'
+  -d '{"slug":"azmail","op":"classify","payload":{"from":"help@paypa1-verify.com","subject":"URGENT verify your account","body_text":"reset your password immediately"}}'
+curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call \
+  -H 'content-type: application/json' \
+  -d '{"slug":"azmail","op":"mesh_disable","payload":{}}'
 ```
 
-Prefer FragGate for live mesh:
+Human demo on this Worker (UI / curl; not the agent door):
 
-`fraggate_call name=azmail op=mesh_disable`
-
-(Engine lands in a sibling aziel-runtime PR. Until then the Worker stub
-keeps mesh off.)
+```bash
+curl -s -A 'Mozilla/5.0' https://azmail-download-tracker.vibelock.workers.dev/v1/health
+curl -s -A 'Mozilla/5.0' -X POST https://azmail-download-tracker.vibelock.workers.dev/v1/mesh/disable -d '{}'
+```
 
 ## Local (after one-click install)
 
@@ -103,10 +105,8 @@ Apache-2.0. Forks are welcome and always allowed.
 
 ## Catalog + local UI
 
-- Product homepage: https://azmail-download-tracker.vibelock.workers.dev/
-- Catalog product: https://aziel-runtime.vibelock.workers.dev/p/azmail/
-- Catalog OpenAPI: https://aziel-runtime.vibelock.workers.dev/openapi.json
-- Catalog MCP: `POST https://aziel-runtime.vibelock.workers.dev/mcp`
+- Product homepage (human UI): https://azmail-download-tracker.vibelock.workers.dev/
+- Agent door: `POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call` body `{"slug":"azmail","op":"…","payload":{}}`
 - FragGate kernel: https://github.com/AzielEliab/fraggate
 - Library: https://www.azielcorpuslibrary.net/
 - godlock.uk · https://www.azieleliab.com

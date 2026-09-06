@@ -47,7 +47,7 @@ RUNTIME_HINT = {
     "door": "fraggate",
     "runtime": "https://aziel-runtime.vibelock.workers.dev",
     "kernel": "https://github.com/AzielEliab/fraggate",
-    "call": "fraggate_call name=azmail op=<mesh_enable|mesh_disable|broadcast|listen|keyword_alerts>",
+    "call": "POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call {\"slug\":\"azmail\",\"op\":\"<mesh_enable|mesh_disable|broadcast|listen|keyword_alerts>\",\"payload\":{}}",
     "note": "Engine lands in a sibling aziel-runtime PR. Local helpers implement the contract only.",
 }
 

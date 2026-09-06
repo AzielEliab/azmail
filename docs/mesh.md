@@ -54,18 +54,29 @@ The mesh refuses:
 
 This is a product refuse list, not a claim of global content moderation.
 
-## Agent path
+## Agent path (FragGate only)
+
+There is **no separate AZMail MCP**. Humans use `azmail ui` / the Worker
+homepage. Agents call aziel-runtime:
+
+```
+POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call
+{"slug":"azmail","op":"mesh_disable","payload":{}}
+```
+
+MCP clients already on the runtime use `fraggate_call` with `slug=azmail`
+(same door). Discover first:
 
 ```
 runtime_skill
 fraggate_list
-fraggate_describe name=azmail
-fraggate_call name=azmail op=mesh_disable
+fraggate_describe slug=azmail
+fraggate_call slug=azmail op=mesh_disable
 ```
 
-Do not invent flat `azmail_broadcast` tool names. HTTP
-`POST /p/azmail/{op}` on the runtime is a **proxy**, not exec, until the
-engine is live.
+Do not invent flat `azmail_broadcast` tool names. Do not `POST` the
+product Worker's `/mcp`. HTTP `POST /p/azmail/{op}` on the runtime is a
+**proxy**, not exec, until the engine is live.
 
 Compatible clients: ChatGPT, Grok, Venice, Claude, Cursor, Glama,
 Perplexity, Copilot, Gemini, Mistral, Meta AI, Apple Intelligence,

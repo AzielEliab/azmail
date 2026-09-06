@@ -81,8 +81,10 @@
     </aside>
   </div>
   <footer>
-    Independent of AZ-OS / Lumen. Mesh ops via
-    <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> FragGate
+    This page is the human UI. Agents use FragGate only:
+    <code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code>
+    body <code>{"slug":"azmail","op":"…","payload":{}}</code>
+    — not a separate mail MCP
     (<a href="https://github.com/AzielEliab/fraggate">kernel</a>).
     Library <a href="https://www.azielcorpuslibrary.net/">azielcorpuslibrary.net</a> ·
     <a href="https://godlock.uk">godlock.uk</a> ·
@@ -146,7 +148,7 @@
         </div>`;
       if (v === "mesh") main.innerHTML = `<h2>Anonymous mesh</h2>
         <div class="card">
-          <p>Off by default. Easy off-switch. No PII in handles. Live mesh via FragGate (sibling runtime PR).</p>
+          <p>Off by default. Easy off-switch. No PII in handles. Live mesh for agents: <code>POST …/v1/fraggate/call</code> <code>{"slug":"azmail","op":"mesh_enable|mesh_disable"}</code>. Not a mail MCP outside FragGate.</p>
           <p>Handle: <code>${(mesh.handle || "anon-…")}</code> · enabled: <strong>${mesh.enabled ? "on" : "OFF"}</strong></p>
           <div class="row">
             <button class="act" id="m-on">mesh_enable</button>

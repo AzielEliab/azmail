@@ -6,7 +6,7 @@
 export const VERSION = "0.1.0";
 export const SPEC = "azmail-app-1.0";
 export const LIMITATION =
-  "THIS IS: a local Mail Airlock plus advisory APP 1.0 layers and mesh client helpers. THIS IS NOT: a public MTA, SMTP/IMAP server, mixnet, VPN, or a guaranteed phishing block. v0.1 does not send internet email. Hosted Worker is a counted download + demo UI + OpenAPI stubs. Anonymous mesh chat and mail ops run via aziel-runtime FragGate (engine lands in a sibling PR). No hard dependency on AZ-OS, Lumen, or a separate interface product. Author: Aziel Eliab only.";
+  "THIS IS: a local Mail Airlock plus advisory APP 1.0 layers and mesh client helpers. THIS IS NOT: a public MTA, SMTP/IMAP server, mixnet, VPN, or a guaranteed phishing block. v0.1 does not send internet email. Hosted Worker is a counted download + human UI + demo HTTP. The AI / MCP path is FragGate only: POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call with slug=azmail — not a separate mail MCP. Engine lands in a sibling PR. No hard dependency on AZ-OS, Lumen, or a separate interface product. Author: Aziel Eliab only.";
 
 export const RUNTIME = "https://aziel-runtime.vibelock.workers.dev";
 export const FRAGGATE = "https://github.com/AzielEliab/fraggate";
@@ -244,7 +244,7 @@ export function meshStub(op, payload, enabled) {
     door: "fraggate",
     runtime: RUNTIME,
     kernel: FRAGGATE,
-    call: `fraggate_call name=azmail op=${op}`,
+    call: `POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call {"slug":"azmail","op":"${op}","payload":{}}`,
     note: "Engine lands in a sibling aziel-runtime PR. This Worker stub does not run a live mesh.",
     limitation: LIMITATION,
     kv_increment: false,

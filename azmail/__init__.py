@@ -14,10 +14,12 @@ LIMITATION = (
     "visual trust badges, user confirmation) and mesh *client helpers*. "
     "THIS IS NOT: a public MTA, SMTP/IMAP server, mixnet, VPN, or a "
     "guaranteed phishing block. v0.1 does not send internet email. "
-    "Hosted Worker is a counted download + demo UI + OpenAPI stubs. "
-    "Anonymous mesh chat and mail ops run via aziel-runtime FragGate "
-    "(engine lands in a sibling PR). No hard dependency on AZ-OS, Lumen, "
-    "or a separate interface product. Author: Aziel Eliab only."
+    "Hosted Worker is a counted download + human UI + demo HTTP. "
+    "The AI / MCP path is FragGate only: POST "
+    "https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call "
+    "with slug=azmail — not a separate mail MCP. Engine lands in a "
+    "sibling PR. No hard dependency on AZ-OS, Lumen, or a separate "
+    "interface product. Author: Aziel Eliab only."
 )
 
 HONEST_BANNER = LIMITATION

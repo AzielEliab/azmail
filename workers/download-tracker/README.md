@@ -13,6 +13,10 @@ URL pattern after deploy (workers.dev + account subdomain, same as sibling produ
 
 KV binding `DOWNLOADS` (create `AZMAIL_DOWNLOADS` on first deploy). Account `ac575a9b822bea2bed97d0ab73aed238`.
 
-Mesh stubs point at aziel-runtime FragGate. Mesh is off by default; `POST /v1/mesh/disable` is the easy off-switch.
+Human UI is this Worker. Agent / MCP path is FragGate only:
+`POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call` with
+`{"slug":"azmail","op":"…","payload":{}}`. There is no separate mail MCP
+on this host (`POST /mcp` returns a pointer). Mesh is off by default;
+`POST /v1/mesh/disable` is the easy off-switch.
 
 Author: Aziel Eliab. Apache-2.0.

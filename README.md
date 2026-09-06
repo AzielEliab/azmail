@@ -87,16 +87,29 @@ Isolated counter: Worker `azmail-download-tracker`, KV `AZMAIL_DOWNLOADS`. `/v1`
 1. **Human UI** — Worker homepage and `azmail ui` are complete software:
    inbox, compose (demo), airlock queue, trust badges, keyword alert
    settings, import/export, doctor/verify, counted download. Black / gold.
-2. **Agent / MCP** — Discover and call through aziel-runtime FragGate
-   (`runtime_skill` → `fraggate_list` → `fraggate_call`). This Worker may
-   expose OpenAPI stubs that point at the runtime. Do not invent flat
-   `{slug}_{op}` tools.
+   Humans stay here. Worker `/v1/classify` and `/v1/scrub` are demo HTTP
+   for that UI, not an agent door.
+2. **Agent / MCP — FragGate only.** There is **no separate AZMail MCP**
+   outside the door. Do not `POST` this Worker's `/mcp`. Do not invent
+   flat `{slug}_{op}` tools. Agents use aziel-runtime FragGate:
+
+```bash
+curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call \
+  -H 'content-type: application/json' \
+  -d '{"slug":"azmail","op":"classify","payload":{"from":"help@paypa1-verify.com","subject":"URGENT verify","body_text":"reset your password immediately"}}'
+```
+
+MCP clients already on aziel-runtime call `fraggate_call` with
+`slug=azmail` (same door). Engine lands in a sibling runtime PR; until
+then FragGate may refuse unknown-name / stub. Discover first:
+`runtime_skill` → `fraggate_list` → `fraggate_describe slug=azmail`.
 
 Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude
 (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot /
 Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence
 surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other
-MCP/OpenAPI-capable assistants.
+MCP/OpenAPI-capable assistants — **through FragGate**, not a mail MCP of
+their own.
 
 ## APP 1.0 layers (modeled in code + UI)
 
@@ -127,7 +140,9 @@ azmail keywords set lighthouse invoice
 - Rate limit 10 / 60s locally
 - Refuse doxxing and credential-harvest content
 
-Live mesh is FragGate, not this process. See [docs/mesh.md](docs/mesh.md).
+Live mesh for agents is FragGate only
+(`POST /v1/fraggate/call` `slug=azmail`), not this process and not a
+mail MCP on the product Worker. See [docs/mesh.md](docs/mesh.md).
 
 ## CLI
 
