@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AZMail — Mail Airlock</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0b0b; --card:#141414; --gold:#c9a227; --gold-dim:#8a7219; --ivory:#e8e0d0; --muted:#9a927e; --line:#2a2414; --risk:#b54a4a; --ok:#7dcf9a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--ivory); }
+    header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); }
+    header img { width:36px; height:36px; }
+    header h1 { margin:0; font-size:1.25rem; color: var(--gold); letter-spacing:.04em; }
+    header .motto { color: var(--muted); font-size:.9rem; }
+    .banner { margin: 12px 18px 0; border:1px solid #5c4a1a; background:#241c0d; color:#f0d78c; padding:.75rem 1rem; border-radius:8px; font-size:.88rem; }
+    .layout { display:grid; grid-template-columns: 200px 1fr 320px; min-height: calc(100vh - 140px); }
+    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } nav, aside { border:0; } }
+    nav { border-right:1px solid var(--line); padding:12px; }
+    nav button { display:block; width:100%; text-align:left; background:transparent; color:var(--ivory); border:1px solid transparent; padding:.55rem .7rem; border-radius:8px; margin-bottom:6px; cursor:pointer; font:inherit; }
+    nav button.active, nav button:hover { border-color: var(--gold-dim); color: var(--gold); }
+    main { padding: 14px 16px; }
+    aside { border-left:1px solid var(--line); padding:14px; }
+    .card { background: var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
+    .badge { display:inline-block; font-size:.75rem; font-weight:700; letter-spacing:.04em; padding:.15rem .5rem; border-radius:999px; border:1px solid var(--gold-dim); color:var(--gold); }
+    .badge.unverified { color:#f0d78c; }
+    .badge.high-risk, .badge.quarantined { color:#ffb4b4; border-color:#b54a4a; }
+    .badge.verified { color:var(--ok); border-color:#2d6a45; }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:.4rem 0 .2rem; }
+    input, textarea, select { width:100%; background:#1a1a1a; color:var(--ivory); border:1px solid var(--line); border-radius:8px; padding:.5rem .6rem; font:inherit; }
+    textarea { min-height: 90px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    button.act { background: var(--gold); color:#14110a; border:0; border-radius:8px; padding:.5rem .85rem; font-weight:700; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--gold); border:1px solid var(--gold-dim); border-radius:8px; padding:.5rem .85rem; cursor:pointer; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size:.78rem; color:#cfc6ad; }
+    .msg { cursor:pointer; }
+    .msg:hover { border-color: var(--gold-dim); }
+    footer { padding:10px 18px 20px; color:var(--muted); font-size:.8rem; }
+    footer a { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://www.azielcorpuslibrary.net/sigil.png" alt="Aziel Eliab sigil">
+    <div>
+      <h1>AZMail</h1>
+      <div class="motto">No message is trusted until verified. Author: Aziel Eliab only.</div>
+    </div>
+  </header>
+  <div class="banner" id="banner">Loading limitation…</div>
+  <div class="layout">
+    <nav>
+      <button class="active" data-view="inbox">Inbox</button>
+      <button data-view="airlock">Airlock queue</button>
+      <button data-view="quarantine">Quarantine</button>
+      <button data-view="compose">Compose (demo)</button>
+      <button data-view="receive">Receive into airlock</button>
+      <button data-view="mesh">Mesh + keywords</button>
+      <button data-view="io">Import / export</button>
+    </nav>
+    <main id="main"></main>
+    <aside>
+      <div class="card">
+        <strong>Trust badges</strong>
+        <p><span class="badge verified">verified</span> source auth pass + clean layers</p>
+        <p><span class="badge unverified">unverified</span> held in airlock</p>
+        <p><span class="badge high-risk">high-risk</span> needs your confirmation</p>
+        <p><span class="badge quarantined">quarantined</span> known-phish / harvest</p>
+      </div>
+      <div class="card">
+        <strong>Doctor / verify</strong>
+        <div class="row">
+          <button class="act" id="doctor-btn">Run doctor</button>
+          <button class="ghost" id="verify-btn">Verify mailbox</button>
+        </div>
+        <pre id="doctor-out"></pre>
+      </div>
+      <div class="card">
+        <strong>Aspirational</strong>
+        <p>&lt;1s inbox delay · parallel scan · real-time link analysis. Targets, not a v0.1 SLA.</p>
+      </div>
+    </aside>
+  </div>
+  <footer>
+    Independent of AZ-OS / Lumen. Mesh ops via
+    <a href="https://github.com/AzielEliab/aziel-runtime">aziel-runtime</a> FragGate
+    (<a href="https://github.com/AzielEliab/fraggate">kernel</a>).
+    Library <a href="https://www.azielcorpuslibrary.net/">azielcorpuslibrary.net</a> ·
+    <a href="https://godlock.uk">godlock.uk</a> ·
+    <a href="https://www.azieleliab.com">azieleliab.com</a> ·
+    Apache-2.0 · forks always allowed.
+  </footer>
+  <script>
+    const state = { view: "inbox", box: { inbox: [], airlock: [], quarantine: [], drafts: [], mesh: { enabled: false, keywords: [] } } };
+
+    async function api(path, body) {
+      const opt = body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {};
+      const res = await fetch(path, opt);
+      return res.json();
+    }
+
+    function badge(cls) {
+      const b = (cls && cls.badge) || "unverified";
+      return `<span class="badge ${b}">${b}</span>`;
+    }
+
+    function list(items, empty) {
+      if (!items.length) return `<p>${empty}</p>`;
+      return items.map((row) => {
+        const m = row.message || row;
+        const cls = row.classification || {};
+        return `<div class="card msg" data-id="${row.id || ""}">
+          <div>${badge(cls)} <strong>${(m.subject || "(no subject)").replace(/</g,"&lt;")}</strong></div>
+          <div>${(m.from || "").replace(/</g,"&lt;")} → ${(m.to || "").replace(/</g,"&lt;")}</div>
+          <div>${(m.body_text || "").slice(0, 160).replace(/</g,"&lt;")}</div>
+          ${row.id && state.view === "airlock" ? `<div class="row"><button class="act" data-release="${row.id}">Confirm release</button></div>` : ""}
+        </div>`;
+      }).join("");
+    }
+
+    function render() {
+      const v = state.view;
+      const box = state.box;
+      const mesh = box.mesh || {};
+      const main = document.getElementById("main");
+      if (v === "inbox") main.innerHTML = `<h2>Inbox</h2>${list(box.inbox || [], "No released mail yet.")}`;
+      if (v === "airlock") main.innerHTML = `<h2>Airlock</h2><p>receive → isolate → analyze → classify → release</p>${list(box.airlock || [], "Queue empty.")}`;
+      if (v === "quarantine") main.innerHTML = `<h2>Quarantine</h2>${list(box.quarantine || [], "Nothing quarantined.")}`;
+      if (v === "compose") main.innerHTML = `<h2>Compose (demo — does not send internet email)</h2>
+        <div class="card">
+          <label>To</label><input id="c-to">
+          <label>Subject</label><input id="c-subject">
+          <label>Body</label><textarea id="c-body"></textarea>
+          <div class="row"><button class="act" id="c-send">Save local draft</button></div>
+          <pre id="c-out"></pre>
+        </div>`;
+      if (v === "receive") main.innerHTML = `<h2>Receive into airlock</h2>
+        <div class="card">
+          <label>From</label><input id="r-from" placeholder="Name &lt;user@domain&gt;">
+          <label>To</label><input id="r-to" value="you@local">
+          <label>Subject</label><input id="r-subject">
+          <label>Text</label><textarea id="r-body"></textarea>
+          <label>HTML (optional)</label><textarea id="r-html"></textarea>
+          <label>Authentication-Results (optional)</label><input id="r-auth" placeholder="spf=pass; dkim=pass; dmarc=pass">
+          <div class="row"><button class="act" id="r-go">Airlock receive</button></div>
+          <pre id="r-out"></pre>
+        </div>`;
+      if (v === "mesh") main.innerHTML = `<h2>Anonymous mesh</h2>
+        <div class="card">
+          <p>Off by default. Easy off-switch. No PII in handles. Live mesh via FragGate (sibling runtime PR).</p>
+          <p>Handle: <code>${(mesh.handle || "anon-…")}</code> · enabled: <strong>${mesh.enabled ? "on" : "OFF"}</strong></p>
+          <div class="row">
+            <button class="act" id="m-on">mesh_enable</button>
+            <button class="ghost" id="m-off">mesh_disable</button>
+          </div>
+          <label>Broadcast (anonymous)</label><textarea id="m-text" placeholder="No emails, no passwords, no doxxing."></textarea>
+          <div class="row"><button class="act" id="m-send">Broadcast</button></div>
+          <label>Keyword alerts (comma-separated). Alert without revealing identity.</label>
+          <input id="m-keys" value="${(mesh.keywords || []).join(", ")}">
+          <div class="row"><button class="ghost" id="m-keys-set">Save keywords</button></div>
+          <pre id="m-out"></pre>
+        </div>`;
+      if (v === "io") main.innerHTML = `<h2>Import / export</h2>
+        <div class="card">
+          <div class="row">
+            <button class="act" id="ex">Export JSON</button>
+            <label class="ghost" style="padding:.5rem .85rem; border:1px solid var(--gold-dim); border-radius:8px; cursor:pointer;">Import JSON file
+              <input id="im" type="file" accept="application/json" style="display:none">
+            </label>
+          </div>
+          <pre id="io-out"></pre>
+        </div>`;
+    }
+
+    async function refresh() {
+      state.box = await api("/api/box");
+      const health = await api("/api/health");
+      document.getElementById("banner").textContent = health.limitation || "";
+      render();
+    }
+
+    document.querySelector("nav").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b === btn));
+      state.view = btn.dataset.view;
+      render();
+    });
+
+    document.getElementById("main").addEventListener("click", async (e) => {
+      const rel = e.target.dataset.release;
+      if (rel) {
+        await api("/api/release", { id: rel });
+        await refresh();
+        return;
+      }
+      if (e.target.id === "c-send") {
+        const out = await api("/api/compose", {
+          to: document.getElementById("c-to").value,
+          subject: document.getElementById("c-subject").value,
+          body: document.getElementById("c-body").value,
+        });
+        document.getElementById("c-out").textContent = JSON.stringify(out, null, 2);
+        await refresh();
+      }
+      if (e.target.id === "r-go") {
+        const auth = document.getElementById("r-auth").value;
+        const out = await api("/api/receive", {
+          from: document.getElementById("r-from").value,
+          to: document.getElementById("r-to").value,
+          subject: document.getElementById("r-subject").value,
+          body_text: document.getElementById("r-body").value,
+          body_html: document.getElementById("r-html").value,
+          headers: auth ? { "Authentication-Results": auth } : {},
+        });
+        document.getElementById("r-out").textContent = JSON.stringify(out, null, 2);
+        await refresh();
+      }
+      if (e.target.id === "m-on") { document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "enable" }), null, 2); await refresh(); }
+      if (e.target.id === "m-off") { document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "disable" }), null, 2); await refresh(); }
+      if (e.target.id === "m-send") {
+        document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "broadcast", text: document.getElementById("m-text").value }), null, 2);
+        await refresh();
+      }
+      if (e.target.id === "m-keys-set") {
+        const keys = document.getElementById("m-keys").value.split(",").map((s) => s.trim()).filter(Boolean);
+        document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "keywords", keywords: keys }), null, 2);
+        await refresh();
+      }
+      if (e.target.id === "ex") {
+        const blob = new Blob([JSON.stringify(state.box, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "azmail-mailbox.json";
+        a.click();
+      }
+    });
+    document.getElementById("main").addEventListener("change", async (e) => {
+      if (e.target.id === "im" && e.target.files[0]) {
+        const text = await e.target.files[0].text();
+        const mailbox = JSON.parse(text);
+        document.getElementById("io-out").textContent = JSON.stringify(await api("/api/import", { mailbox }), null, 2);
+        await refresh();
+      }
+    });
+    document.getElementById("doctor-btn").onclick = async () => {
+      document.getElementById("doctor-out").textContent = JSON.stringify(await api("/api/doctor"), null, 2);
+    };
+    document.getElementById("verify-btn").onclick = async () => {
+      const box = await api("/api/box");
+      document.getElementById("doctor-out").textContent = JSON.stringify({
+        ok: box.schema === "azmail-mailbox-v0",
+        inbox: (box.inbox || []).length,
+        airlock: (box.airlock || []).length,
+        mesh_enabled: !!(box.mesh && box.mesh.enabled),
+      }, null, 2);
+    };
+    refresh();
+  </script>
+</body>
+</html>
