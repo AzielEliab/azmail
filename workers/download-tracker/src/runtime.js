@@ -1,6 +1,11 @@
 /**
- * AZMail hosted runtime. Demo classify/scrub + OpenAPI stubs that point at FragGate.
+ * AZMail hosted runtime. Demo airlock_classify/scrub + OpenAPI stubs.
  * /v1 never touches DOWNLOADS KV. Not an MTA.
+ *
+ * Door paths (`/v1/fraggate/*`, `/v1/runtime/*`) PROXY to aziel-runtime
+ * via AZIEL_RUNTIME service binding (match azbrowser). Local ops are
+ * single-segment `/v1/{op}` only. Leftover `/v1/classify` aliases
+ * FragGate op `airlock_classify`.
  */
 import {
   LIMITATION,
@@ -12,11 +17,18 @@ import {
   meshStub,
   scrubHtml,
 } from "./engine.js";
+import { classifyV1Path, doorTargetUrl } from "./door.js";
 
 export const HOST = "https://azmail-download-tracker.vibelock.workers.dev";
 const PRODUCT = "azmail";
 const SIGIL = "https://www.azielcorpuslibrary.net/sigil.png";
 const FRAGGATE_CALL = "https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call";
+const FRAGGATE_MCP = "https://aziel-runtime.vibelock.workers.dev/mcp";
+
+/** Leftover local route → FragGate LIVE_OPS name. */
+export const LOCAL_OP_ALIASES = Object.freeze({
+  classify: "airlock_classify",
+});
 
 const SKILL_MD = `---
 name: AZMail
@@ -39,7 +51,9 @@ Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty age
 
 \`POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call\` body \`{"slug":"azmail","op":"…","payload":{}}\`
 
-Same door as MCP \`fraggate_call\` (\`slug=azmail\`). Kernel: https://github.com/AzielEliab/fraggate. Engine lands in a sibling aziel-runtime PR.
+Same door as MCP \`fraggate_call\` (\`slug=azmail\`). Kernel: https://github.com/AzielEliab/fraggate.
+
+This Worker \`/v1/fraggate/*\` (list / describe / call) and \`/v1/runtime/*\` PROXY to aziel-runtime via the \`AZIEL_RUNTIME\` service binding. Local ops are \`/v1/{op}\` only.
 
 **Human UI stays on this Worker / \`azmail ui\`.** AI path is FragGate.
 
@@ -54,10 +68,14 @@ Host: \`https://azmail-download-tracker.vibelock.workers.dev\`
 | GET | \`/v1/health\` | Liveness. Does not increment downloads. |
 | GET | \`/v1/skill\` | This markdown. Does not increment downloads. |
 | GET | \`/v1/example\` | Sample airlock payload. |
-| POST | \`/v1/classify\` | Human-UI demo classify. Not the agent door. |
+| POST | \`/v1/airlock_classify\` | Human-UI classify. Same name as FragGate op. Not stored. |
+| POST | \`/v1/classify\` | Leftover alias of \`airlock_classify\`. |
 | POST | \`/v1/scrub\` | Human-UI demo scrub. |
 | POST | \`/v1/keyword-alerts\` | Demo match. Agents use FragGate. |
 | POST | \`/v1/mesh/*\` | Stubs that point at FragGate. Off by default. |
+| GET | \`/v1/fraggate/list\` | PROXY → aziel-runtime FragGate list. |
+| GET | \`/v1/fraggate/describe\` | PROXY → aziel-runtime FragGate describe. |
+| POST | \`/v1/fraggate/call\` | PROXY → aziel-runtime FragGate call. |
 
 Works with ChatGPT (GPT Actions / OpenAI), Grok (xAI), Venice, Claude (Anthropic), Cursor (MCP), Glama (MCP), Perplexity, Microsoft Copilot / Bing, Google Gemini / Vertex, Mistral, Meta AI, Apple Intelligence surfaces, Amazon Q tooling, DuckAssist, You.com, Cohere, and other MCP/OpenAPI-capable assistants — **through FragGate**, not a mail MCP of their own.
 
@@ -87,7 +105,7 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id, User-Agent",
+    "Access-Control-Allow-Headers": "Content-Type, Accept, MCP-Protocol-Version, mcp-session-id, User-Agent, Authorization",
   };
 }
 
@@ -121,14 +139,19 @@ const EXAMPLE = {
   headers: { "Authentication-Results": "mx; spf=fail; dkim=none; dmarc=fail" },
 };
 
+function classifyBody(body) {
+  const out = classify(body);
+  return { ...out, op: "airlock_classify", ok: true };
+}
+
 function openapiSpec(origin) {
   return {
     openapi: "3.1.0",
     info: {
       title: "AZMail runtime",
       version: VERSION,
-      summary: "Human-UI demo only. Agents use FragGate POST /v1/fraggate/call slug=azmail. Not a mail MCP.",
-      description: LIMITATION + " Agent path: POST " + RUNTIME + "/v1/fraggate/call {slug:azmail,op,payload}. This OpenAPI is not the agent door.",
+      summary: "Human-UI demo only. Agents use FragGate POST /v1/fraggate/call slug=azmail op=airlock_classify. Not a mail MCP.",
+      description: LIMITATION + " Agent path: POST " + RUNTIME + "/v1/fraggate/call {slug:azmail,op,payload}. This host /v1/fraggate/* PROXY to aziel-runtime. This OpenAPI is not the agent door.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: "Aziel Eliab", url: "https://github.com/AzielEliab/azmail" },
     },
@@ -137,13 +160,20 @@ function openapiSpec(origin) {
       "/v1/health": { get: { operationId: "azmail_health", summary: "Liveness. Does not increment downloads.", responses: { "200": { description: "ok" } } } },
       "/v1/skill": { get: { operationId: "azmail_skill", summary: "Skill markdown.", responses: { "200": { description: "markdown" } } } },
       "/v1/example": { get: { operationId: "azmail_example", summary: "Sample payload.", responses: { "200": { description: "ok" } } } },
-      "/v1/classify": { post: { operationId: "azmail_classify", summary: "Advisory APP classify. Not stored.", requestBody: { required: true, content: { "application/json": { schema: { type: "object" }, example: EXAMPLE } } }, responses: { "200": { description: "classification" } } } },
+      "/v1/airlock_classify": { post: { operationId: "azmail_airlock_classify", summary: "Advisory APP classify. FragGate op name. Not stored.", requestBody: { required: true, content: { "application/json": { schema: { type: "object" }, example: EXAMPLE } } }, responses: { "200": { description: "classification" } } } },
+      "/v1/classify": { post: { operationId: "azmail_classify", summary: "Leftover alias of airlock_classify.", requestBody: { required: true, content: { "application/json": { schema: { type: "object" }, example: EXAMPLE } } }, responses: { "200": { description: "classification" } } } },
       "/v1/scrub": { post: { operationId: "azmail_scrub", summary: "Scrub HTML. Not stored.", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { html: { type: "string" } } } } } }, responses: { "200": { description: "scrubbed" } } } },
       "/v1/keyword-alerts": { post: { operationId: "azmail_keyword_alerts", summary: "Match keywords without revealing identity.", requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "alerts" } } } },
       "/v1/mesh/enable": { post: { operationId: "azmail_mesh_enable", summary: "Stub → FragGate mesh_enable. Mesh off by default.", responses: { "200": { description: "stub" } } } },
       "/v1/mesh/disable": { post: { operationId: "azmail_mesh_disable", summary: "Easy off-switch. Default state.", responses: { "200": { description: "off" } } } },
       "/v1/mesh/broadcast": { post: { operationId: "azmail_mesh_broadcast", summary: "Stub. Refuses when off / doxxing / credential harvest.", responses: { "200": { description: "stub or refuse" } } } },
       "/v1/mesh/listen": { post: { operationId: "azmail_mesh_listen", summary: "Stub. Refuses when mesh is off.", responses: { "200": { description: "stub" } } } },
+      "/v1/fraggate/list": { get: { operationId: "azmail_fraggate_list_proxy", summary: "PROXY to aziel-runtime GET /v1/fraggate/list. Not a local op.", responses: { "200": { description: "hashed registry" } } } },
+      "/v1/fraggate/describe": { get: { operationId: "azmail_fraggate_describe_proxy", summary: "PROXY to aziel-runtime GET /v1/fraggate/describe. Not a local op.", responses: { "200": { description: "catalog describe" } } } },
+      "/v1/fraggate/call": { post: { operationId: "azmail_fraggate_call_proxy", summary: "PROXY to aziel-runtime POST /v1/fraggate/call. Not a local op.", requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "FragGate ResultEnvelope" } } } },
+      "/v1/runtime/list": { get: { operationId: "azmail_runtime_list_proxy", summary: "Alias PROXY → origin /v1/fraggate/list.", responses: { "200": { description: "hashed registry" } } } },
+      "/v1/runtime/describe": { get: { operationId: "azmail_runtime_describe_proxy", summary: "Alias PROXY → origin /v1/fraggate/describe.", responses: { "200": { description: "catalog describe" } } } },
+      "/v1/runtime/call": { post: { operationId: "azmail_runtime_call_proxy", summary: "Alias PROXY → origin /v1/fraggate/call.", requestBody: { content: { "application/json": { schema: { type: "object" } } } }, responses: { "200": { description: "FragGate ResultEnvelope" } } } },
     },
   };
 }
@@ -156,11 +186,12 @@ function aiHtml(origin) {
 <h1>AZMail runtime</h1>
 <p class="banner">${LIMITATION}</p>
 <p>Human UI is this Worker. <strong>AI / MCP path is FragGate only</strong> — there is no separate AZMail MCP outside the door.</p>
-<p>Agent door: <code>POST ${FRAGGATE_CALL}</code> body <code>{"slug":"azmail","op":"classify","payload":{…}}</code><br>
+<p>Agent door: <code>POST ${FRAGGATE_CALL}</code> body <code>{"slug":"azmail","op":"airlock_classify","payload":{…}}</code><br>
+This host <code>/v1/fraggate/*</code> PROXY to aziel-runtime (list / describe / call).<br>
 Skill: <a href="${origin}/v1/skill">${origin}/v1/skill</a><br>
 Kernel: <a href="${FRAGGATE_SAFE()}">${FRAGGATE_SAFE()}</a></p>
 <pre>curl -A Mozilla/5.0 -X POST ${FRAGGATE_CALL} -H 'content-type: application/json' \\
-  -d '{"slug":"azmail","op":"classify","payload":{"from":"help@paypa1-verify.com","subject":"URGENT verify your account","body_text":"reset your password immediately"}}'
+  -d '{"slug":"azmail","op":"airlock_classify","payload":{"from":"help@paypa1-verify.com","subject":"URGENT verify your account","body_text":"reset your password immediately"}}'
 curl -A Mozilla/5.0 -X POST ${FRAGGATE_CALL} -H 'content-type: application/json' \\
   -d '{"slug":"azmail","op":"mesh_disable","payload":{}}'</pre>
 <p>This host's /v1 is human-demo HTTP and does not increment downloads. POST /mcp here is not an agent door. Not an MTA.</p>
@@ -178,16 +209,59 @@ function handleMcp() {
     error: "not a mail MCP",
     door: "fraggate",
     agent_path: FRAGGATE_CALL,
+    catalog_mcp: FRAGGATE_MCP,
     slug: "azmail",
-    body: { slug: "azmail", op: "classify", payload: {} },
-    note: "AZMail agents use FragGate only: POST /v1/fraggate/call with slug=azmail. Human UI is this Worker / azmail ui. There is no separate mail MCP outside the door.",
+    body: { slug: "azmail", op: "airlock_classify", payload: {} },
+    note: "AZMail agents use FragGate only: POST /v1/fraggate/call with slug=azmail. This host /v1/fraggate/* PROXY to aziel-runtime. Human UI is this Worker / azmail ui. There is no separate mail MCP outside the door.",
     limitation: LIMITATION,
   });
 }
 
+function runtimeFetcher(env) {
+  if (env && env.AZIEL_RUNTIME && typeof env.AZIEL_RUNTIME.fetch === "function") return env.AZIEL_RUNTIME;
+  return null;
+}
+
+async function proxyDoor(request, url, env) {
+  const dest = doorTargetUrl(url.pathname, request.url, env);
+  if (!dest) {
+    return json({ ok: false, error: "not a door path", path: url.pathname, limitation: LIMITATION }, 404);
+  }
+  const headers = new Headers();
+  const pass = ["content-type", "accept", "authorization", "user-agent", "mcp-protocol-version", "mcp-session-id", "x-aziel-runtime-token"];
+  for (const name of pass) {
+    const v = request.headers.get(name);
+    if (v) headers.set(name, v);
+  }
+  if (!headers.has("User-Agent")) headers.set("User-Agent", "Mozilla/5.0 AZMail/0.1.0");
+  const init = { method: request.method, headers, redirect: "follow" };
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    init.body = request.body;
+    init.duplex = "half";
+  }
+  try {
+    const fetcher = runtimeFetcher(env);
+    const res = fetcher ? await fetcher.fetch(dest, init) : await fetch(dest, init);
+    const outHeaders = new Headers(res.headers);
+    for (const [k, v] of Object.entries(corsHeaders())) outHeaders.set(k, v);
+    outHeaders.set("X-Aziel-Door", "proxy");
+    outHeaders.set("X-Aziel-Door-Origin", dest);
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers: outHeaders });
+  } catch (exc) {
+    return json({
+      ok: false,
+      error: "fraggate_proxy_failed",
+      detail: String(exc).slice(0, 240),
+      origin: dest,
+      agent_path: FRAGGATE_CALL,
+      limitation: LIMITATION,
+    }, 502);
+  }
+}
+
 export { SKILL_MD };
 
-export async function handleRuntimeApi(request, url) {
+export async function handleRuntimeApi(request, url, env) {
   const path = url.pathname.replace(/\/+$/, "") || "/";
   if (path === "/mcp") return handleMcp(request);
   if (path === "/v1/health" && request.method === "GET") {
@@ -206,6 +280,8 @@ export async function handleRuntimeApi(request, url) {
       agent_path: FRAGGATE_CALL,
       slug: "azmail",
       door: "fraggate",
+      door_proxy: ["/v1/fraggate/list", "/v1/fraggate/describe", "/v1/fraggate/call"],
+      classify_op: "airlock_classify",
       author: "Aziel Eliab",
       sigil: SIGIL,
     });
@@ -222,15 +298,20 @@ export async function handleRuntimeApi(request, url) {
   if (path === "/openapi.json" && request.method === "GET") return json(openapiSpec(originOf(request)));
   if ((path === "/ai" || url.pathname === "/ai/") && request.method === "GET") return html(aiHtml(originOf(request)));
   if (path === "/llms.txt" || path === "/ai.txt") {
-    return new Response(`AZMail ${VERSION} by Aziel Eliab. Apache-2.0. ${LIMITATION}\nAgent path (FragGate only): POST ${FRAGGATE_CALL} {"slug":"azmail","op":"…","payload":{}}\nHuman UI: ${originOf(request)}/\nSkill: ${originOf(request)}/v1/skill\n`, {
+    return new Response(`AZMail ${VERSION} by Aziel Eliab. Apache-2.0. ${LIMITATION}\nAgent path (FragGate only): POST ${FRAGGATE_CALL} {"slug":"azmail","op":"airlock_classify","payload":{}}\nThis Worker /v1/fraggate/* and /v1/runtime/* PROXY to aziel-runtime. Local classify is POST /v1/airlock_classify (/v1/classify leftover alias).\nHuman UI: ${originOf(request)}/\nSkill: ${originOf(request)}/v1/skill\n`, {
       headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
     });
   }
 
-  if (path === "/v1/classify" && request.method === "POST") {
+  const classified = classifyV1Path(url.pathname);
+  if (classified.kind === "door") {
+    return proxyDoor(request, url, env);
+  }
+
+  if ((path === "/v1/airlock_classify" || path === "/v1/classify") && request.method === "POST") {
     let body;
     try { body = await request.json(); } catch { return json({ error: "JSON body required", limitation: LIMITATION }, 400); }
-    return json(classify(body));
+    return json(classifyBody(body));
   }
   if (path === "/v1/scrub" && request.method === "POST") {
     let body;
@@ -250,8 +331,20 @@ export async function handleRuntimeApi(request, url) {
     return json(meshStub("broadcast", body, false));
   }
   if (path === "/v1/mesh/listen" && request.method === "POST") return json(meshStub("listen", {}, false));
+  if (classified.kind === "multi") {
+    return json({
+      ok: false,
+      error: "not a local op",
+      code: "NOT_LOCAL_OP",
+      path: classified.path,
+      hint: "Local ops are POST|GET /v1/{op} only (single segment). FragGate door is /v1/fraggate/* (proxied to aziel-runtime). /v1/runtime/list, /v1/runtime/describe, and /v1/runtime/call alias that door. Leftover /v1/mesh/* stubs remain.",
+      agent_path: FRAGGATE_CALL,
+      classify_op: "airlock_classify",
+      limitation: LIMITATION,
+    }, 404);
+  }
   if (path.startsWith("/v1/") || path === "/v1") {
-    return json({ error: "not found", hint: "GET /v1/health GET /v1/skill POST /v1/classify POST /v1/scrub POST /v1/mesh/disable", limitation: LIMITATION }, 404);
+    return json({ error: "not found", hint: "GET /v1/health GET /v1/skill POST /v1/airlock_classify POST /v1/scrub POST /v1/mesh/disable GET /v1/fraggate/list GET /v1/fraggate/describe POST /v1/fraggate/call", limitation: LIMITATION }, 404);
   }
   return null;
 }

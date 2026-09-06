@@ -92,7 +92,10 @@ These are design targets. v0.1 does not claim a measured SLA.
 Human software (Worker UI, Flutter `mobile/`, local `azmail ui`, counted
 `/download`) stays complete. The AI path is FragGate only:
 `POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call` with
-`slug=azmail`. There is no separate mail MCP outside that door.
+`slug=azmail` and classify op `airlock_classify`. The product Worker
+proxies `/v1/fraggate/list|describe|call` to aziel-runtime via the
+`AZIEL_RUNTIME` service binding. There is no separate mail MCP outside
+that door.
 Identity is Aziel Eliab only.
 
 ## Mesh

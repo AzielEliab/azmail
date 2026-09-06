@@ -6,7 +6,7 @@
 export const VERSION = "0.1.0";
 export const SPEC = "azmail-app-1.0";
 export const LIMITATION =
-  "THIS IS: a local Mail Airlock plus advisory APP 1.0 layers and mesh client helpers. THIS IS NOT: a public MTA, SMTP/IMAP server, mixnet, VPN, or a guaranteed phishing block. v0.1 does not send internet email. Hosted Worker is a counted download + human UI + demo HTTP. The AI / MCP path is FragGate only: POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call with slug=azmail — not a separate mail MCP. Engine lands in a sibling PR. No hard dependency on AZ-OS, Lumen, or a separate interface product. Author: Aziel Eliab only.";
+  "THIS IS: a local Mail Airlock plus advisory APP 1.0 layers and mesh client helpers. THIS IS NOT: a public MTA, SMTP/IMAP server, mixnet, VPN, or a guaranteed phishing block. v0.1 does not send internet email. Hosted Worker is a counted download + human UI + demo HTTP. The AI / MCP path is FragGate only: POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call with slug=azmail op=airlock_classify — not a separate mail MCP. This Worker /v1/fraggate/* PROXY to aziel-runtime. No hard dependency on AZ-OS, Lumen, or a separate interface product. Author: Aziel Eliab only.";
 
 export const RUNTIME = "https://aziel-runtime.vibelock.workers.dev";
 export const FRAGGATE = "https://github.com/AzielEliab/fraggate";

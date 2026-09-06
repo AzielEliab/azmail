@@ -99,8 +99,10 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
                 save(box_path, box)
                 self._json(env.as_dict())
                 return
-            if path == "/api/classify":
-                self._json(classify(body).as_dict())
+            if path in {"/api/classify", "/api/airlock_classify"}:
+                out = classify(body).as_dict()
+                out["op"] = "airlock_classify"
+                self._json(out)
                 return
             if path == "/api/scrub":
                 self._json(scrub_html(str(body.get("html") or "")))

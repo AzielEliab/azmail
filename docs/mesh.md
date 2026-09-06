@@ -24,6 +24,7 @@ and `mesh_disable` is a no-op success.
 | Broadcast | `azmail mesh broadcast --text …` | `POST /v1/mesh/broadcast` | `op=broadcast` |
 | Listen | `azmail mesh listen` | `POST /v1/mesh/listen` | `op=listen` |
 | Keywords | `azmail keywords set a b` | `POST /v1/keyword-alerts` | `op=keyword_alerts` |
+| Classify | `azmail classify` | `POST /v1/airlock_classify` (alias `/v1/classify`) | `op=airlock_classify` |
 
 Default `enabled=false`. Any `mesh_disable` call turns the microphone
 off immediately. Broadcast and listen refuse with `MESH_DISABLED` while

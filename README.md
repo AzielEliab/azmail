@@ -20,7 +20,10 @@ How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 v0.1 is a **local airlock + compose + mesh client helpers**. It is **not**
 a public MTA. It does **not** send internet email. Hosted
-`/v1/classify` and `/v1/scrub` are advisory demos and are not stored.
+`/v1/airlock_classify` (leftover alias `/v1/classify`) and `/v1/scrub`
+are advisory demos and are not stored. `/v1/fraggate/*` PROXY to
+aziel-runtime (list / describe / call) via the `AZIEL_RUNTIME` service
+binding.
 Anonymous mesh chat and mail ops run via
 [aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate
 ([kernel](https://github.com/AzielEliab/fraggate)); the engine lands in a
@@ -69,8 +72,12 @@ URL pattern (same as sibling Aziel Eliab products):
 | `/` | Complete mail UI + views |
 | `/download` | Counted tarball |
 | `/count` | `{views, downloads, total}` |
-| `/v1/classify` | Advisory classify (no increment) |
+| `/v1/airlock_classify` | Advisory classify (FragGate op name; no increment) |
+| `/v1/classify` | Leftover alias of `airlock_classify` |
 | `/v1/scrub` | HTML scrub (no increment) |
+| `/v1/fraggate/list` | PROXY → aziel-runtime FragGate list |
+| `/v1/fraggate/describe` | PROXY → aziel-runtime FragGate describe |
+| `/v1/fraggate/call` | PROXY → aziel-runtime FragGate call |
 | `/v1/mesh/disable` | Easy mesh off-switch |
 | `/v1/skill` | Agent skill |
 | `/openapi.json` | OpenAPI 3.1 |
@@ -87,8 +94,9 @@ Isolated counter: Worker `azmail-download-tracker`, KV `AZMAIL_DOWNLOADS`. `/v1`
 1. **Human UI** — Worker homepage and `azmail ui` are complete software:
    inbox, compose (demo), airlock queue, trust badges, keyword alert
    settings, import/export, doctor/verify, counted download. Black / gold.
-   Humans stay here. Worker `/v1/classify` and `/v1/scrub` are demo HTTP
-   for that UI, not an agent door.
+   Humans stay here. Worker `/v1/airlock_classify` (alias `/v1/classify`)
+   and `/v1/scrub` are demo HTTP for that UI, not an agent door. The
+   classify button posts the FragGate op name `airlock_classify`.
 2. **Agent / MCP — FragGate only.** There is **no separate AZMail MCP**
    outside the door. Do not `POST` this Worker's `/mcp`. Do not invent
    flat `{slug}_{op}` tools. Agents use aziel-runtime FragGate:
@@ -96,7 +104,7 @@ Isolated counter: Worker `azmail-download-tracker`, KV `AZMAIL_DOWNLOADS`. `/v1`
 ```bash
 curl -s -A 'Mozilla/5.0' -X POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call \
   -H 'content-type: application/json' \
-  -d '{"slug":"azmail","op":"classify","payload":{"from":"help@paypa1-verify.com","subject":"URGENT verify","body_text":"reset your password immediately"}}'
+  -d '{"slug":"azmail","op":"airlock_classify","payload":{"from":"help@paypa1-verify.com","subject":"URGENT verify","body_text":"reset your password immediately"}}'
 ```
 
 MCP clients already on aziel-runtime call `fraggate_call` with
