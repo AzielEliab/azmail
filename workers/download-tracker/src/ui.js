@@ -78,8 +78,9 @@ footer a { color:var(--gold); }
 <pre id="install-cmd" class="iso">${INSTALL_LINE}
 Then run: azmail ui  →  http://127.0.0.1:8876 (this computer only). v0.1 does not send internet email.</pre>
 <p class="iso">Isolated counter: Worker <code>azmail-download-tracker</code>, KV AZMAIL_DOWNLOADS. /v1 does not increment.
-<strong>Human UI is this page.</strong> AI / MCP path is FragGate only — no separate mail MCP:
-<code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code> body <code>{"slug":"azmail","op":"…","payload":{}}</code>.
+<strong>Human UI is this page.</strong> Classify button posts <code>/v1/airlock_classify</code> (FragGate op). Door paths
+<code>/v1/fraggate/list|describe|call</code> PROXY to aziel-runtime. AI / MCP path is FragGate only — no separate mail MCP:
+<code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code> body <code>{"slug":"azmail","op":"airlock_classify","payload":{}}</code>.
 GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watchers || 0}.
 <a href="/count">/count</a> · <a href="/stats">/stats</a> · <a href="/v1/skill">Skill</a> · <a href="/ai">AI / FragGate</a> · <a href="https://github.com/AzielEliab/azmail">GitHub</a></p>
 
@@ -122,7 +123,7 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
   function persist() { localStorage.setItem("azmail-demo", JSON.stringify(box)); }
 
   async function classify(msg) {
-    const res = await fetch("/v1/classify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(msg) });
+    const res = await fetch("/v1/airlock_classify", { method: "POST", headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0" }, body: JSON.stringify(msg) });
     return res.json();
   }
   function badge(b) { return '<span class="badge ' + (b || "unverified") + '">' + (b || "unverified") + "</span>"; }
@@ -140,9 +141,9 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
     if (view === "inbox") main.innerHTML = "<h2>Inbox</h2>" + list(box.inbox, "No released mail. Receive into the airlock first.");
     if (view === "airlock") main.innerHTML = "<h2>Airlock — receive → isolate → analyze → classify → release</h2>" + list(box.airlock, "Queue empty.");
     if (view === "compose") main.innerHTML = '<h2>Compose (demo — does not send internet email)</h2><div class="card"><label>To</label><input id="c-to"><label>Subject</label><input id="c-sub"><label>Body</label><textarea id="c-body"></textarea><div class="row"><button class="act" id="c-go">Save local draft</button></div><pre id="c-out"></pre></div>';
-    if (view === "receive") main.innerHTML = '<h2>Receive into airlock</h2><div class="card"><label>From</label><input id="r-from" placeholder="PayPal Billing &lt;help@paypa1-verify.com&gt;"><label>Subject</label><input id="r-sub"><label>Body</label><textarea id="r-body"></textarea><label>HTML</label><textarea id="r-html"></textarea><label>Authentication-Results</label><input id="r-auth" placeholder="spf=pass; dkim=pass; dmarc=pass"><div class="row"><button class="act" id="r-go">Classify + isolate</button></div><pre id="r-out"></pre></div>';
+    if (view === "receive") main.innerHTML = '<h2>Receive into airlock</h2><div class="card"><label>From</label><input id="r-from" placeholder="PayPal Billing &lt;help@paypa1-verify.com&gt;"><label>Subject</label><input id="r-sub"><label>Body</label><textarea id="r-body"></textarea><label>HTML</label><textarea id="r-html"></textarea><label>Authentication-Results</label><input id="r-auth" placeholder="spf=pass; dkim=pass; dmarc=pass"><div class="row"><button class="act" id="r-go">airlock_classify</button></div><pre id="r-out"></pre></div>';
     if (view === "mesh") main.innerHTML = '<h2>Anonymous mesh</h2><div class="card"><p>Off by default. Easy off-switch. <strong>Agents:</strong> <code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code> <code>{"slug":"azmail","op":"mesh_enable|mesh_disable|broadcast|listen"}</code>. Not a separate mail MCP. This page is the human UI (local flag + stubs).</p><p>enabled: <strong>' + (box.mesh.enabled ? "on" : "OFF") + '</strong></p><div class="row"><button class="act" id="m-on">mesh_enable</button><button class="ghost" id="m-off">mesh_disable</button></div><label>Broadcast</label><textarea id="m-text"></textarea><div class="row"><button class="act" id="m-send">Broadcast stub</button></div><label>Keywords (alert without identity)</label><input id="m-keys" value="' + (box.mesh.keywords || []).join(", ") + '"><div class="row"><button class="ghost" id="m-keys-set">Save keywords</button></div><pre id="m-out"></pre></div>';
-    if (view === "doctor") main.innerHTML = '<h2>Doctor / verify / import-export</h2><div class="card"><div class="row"><button class="act" id="d-health">GET /v1/health</button><button class="ghost" id="d-ex">Export JSON</button><label class="ghost" style="padding:.5rem .85rem;border:1px solid var(--gold-dim);border-radius:8px;cursor:pointer;">Import JSON<input id="d-im" type="file" accept="application/json" style="display:none"></label></div><pre id="d-out"></pre></div>';
+    if (view === "doctor") main.innerHTML = '<h2>Doctor / verify / import-export</h2><div class="card"><div class="row"><button class="act" id="d-health">GET /v1/health</button><button class="ghost" id="d-fg">GET /v1/fraggate/list</button><button class="ghost" id="d-ex">Export JSON</button><label class="ghost" style="padding:.5rem .85rem;border:1px solid var(--gold-dim);border-radius:8px;cursor:pointer;">Import JSON<input id="d-im" type="file" accept="application/json" style="display:none"></label></div><pre id="d-out"></pre></div>';
   }
   document.querySelector("nav").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
@@ -194,6 +195,9 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
     }
     if (t.id === "d-health") {
       document.getElementById("d-out").textContent = JSON.stringify(await fetch("/v1/health").then(function (r) { return r.json(); }), null, 2);
+    }
+    if (t.id === "d-fg") {
+      document.getElementById("d-out").textContent = JSON.stringify(await fetch("/v1/fraggate/list", { headers: { "user-agent": "Mozilla/5.0" } }).then(function (r) { return r.json(); }), null, 2);
     }
     if (t.id === "d-ex") {
       var a = document.createElement("a");

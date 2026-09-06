@@ -9,6 +9,8 @@ Mesh is off by default. `mesh_disable` is the easy off-switch.
 
 Agent path is FragGate only:
 `POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call`
-with `slug=azmail`. Not a separate mail MCP. Human UI stays local / Worker.
+with `slug=azmail` and classify op `airlock_classify`.
+The product Worker proxies `/v1/fraggate/list|describe|call` via
+`AZIEL_RUNTIME`. Not a separate mail MCP. Human UI stays local / Worker.
 
 Forks are welcome and always allowed. Apache-2.0.

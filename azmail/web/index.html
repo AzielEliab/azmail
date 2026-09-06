@@ -143,7 +143,10 @@
           <label>Text</label><textarea id="r-body"></textarea>
           <label>HTML (optional)</label><textarea id="r-html"></textarea>
           <label>Authentication-Results (optional)</label><input id="r-auth" placeholder="spf=pass; dkim=pass; dmarc=pass">
-          <div class="row"><button class="act" id="r-go">Airlock receive</button></div>
+          <div class="row">
+            <button class="act" id="r-cls">airlock_classify</button>
+            <button class="ghost" id="r-go">Airlock receive</button>
+          </div>
           <pre id="r-out"></pre>
         </div>`;
       if (v === "mesh") main.innerHTML = `<h2>Anonymous mesh</h2>
@@ -204,16 +207,21 @@
         document.getElementById("c-out").textContent = JSON.stringify(out, null, 2);
         await refresh();
       }
-      if (e.target.id === "r-go") {
+      if (e.target.id === "r-cls" || e.target.id === "r-go") {
         const auth = document.getElementById("r-auth").value;
-        const out = await api("/api/receive", {
+        const msg = {
           from: document.getElementById("r-from").value,
           to: document.getElementById("r-to").value,
           subject: document.getElementById("r-subject").value,
           body_text: document.getElementById("r-body").value,
           body_html: document.getElementById("r-html").value,
           headers: auth ? { "Authentication-Results": auth } : {},
-        });
+        };
+        if (e.target.id === "r-cls") {
+          document.getElementById("r-out").textContent = JSON.stringify(await api("/api/airlock_classify", msg), null, 2);
+          return;
+        }
+        const out = await api("/api/receive", msg);
         document.getElementById("r-out").textContent = JSON.stringify(out, null, 2);
         await refresh();
       }
