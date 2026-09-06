@@ -151,7 +151,7 @@
         </div>`;
       if (v === "mesh") main.innerHTML = `<h2>Anonymous mesh</h2>
         <div class="card">
-          <p>Off by default. Easy off-switch. No PII in handles. Live mesh for agents: <code>POST …/v1/fraggate/call</code> <code>{"slug":"azmail","op":"mesh_enable|mesh_disable"}</code>. Not a mail MCP outside FragGate.</p>
+          <p>Product-local leftover ring. Off by default. Easy off-switch. No PII in handles. Agents: <code>POST …/v1/fraggate/call</code> <code>{"slug":"azmail","op":"mesh_enable|mesh_disable"}</code>. Not suite QNM (Worker Live Nodes strip + <code>/v1/mesh/*</code> PROXY, FragGate <code>slug=mesh</code>). Not a mail MCP outside FragGate.</p>
           <p>Handle: <code>${(mesh.handle || "anon-…")}</code> · enabled: <strong>${mesh.enabled ? "on" : "OFF"}</strong></p>
           <div class="row">
             <button class="act" id="m-on">mesh_enable</button>

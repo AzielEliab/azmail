@@ -69,6 +69,12 @@ assert.equal(
   doorTargetUrl("/v1/runtime/list", "https://example.test/v1/runtime/list?x=1"),
   DEFAULT_RUNTIME_ORIGIN + "/v1/fraggate/list?x=1",
 );
+assert.equal(classifyV1Path("/v1/mesh").kind, "door");
+assert.equal(classifyV1Path("/v1/mesh/nodes").kind, "door");
+assert.equal(classifyV1Path("/v1/mesh/disable").kind, "door");
+assert.equal(classifyV1Path("/v1/mesh_disable").kind, "local");
+assert.equal(classifyV1Path("/v1/mesh_disable").op, "mesh_disable");
+assert.equal(localOpFromPath("/v1/mesh"), null);
 assert.equal(classifyV1Path("/v1/not/a/door").kind, "multi");
 assert.equal(classifyV1Path("/count").kind, "none");
 assert.equal(classifyV1Path("/stats").kind, "none");
@@ -205,7 +211,7 @@ try {
   assert.equal(healthBody.product, "azmail");
   assert.equal(healthBody.classify_op, "airlock_classify");
 
-  const meshReq = new Request("https://azmail-download-tracker.vibelock.workers.dev/v1/mesh/disable", {
+  const meshReq = new Request("https://azmail-download-tracker.vibelock.workers.dev/v1/mesh_disable", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: "{}",
@@ -214,6 +220,7 @@ try {
   const meshBody = await meshRes.json();
   assert.equal(meshBody.ok, true);
   assert.equal(meshBody.enabled, false);
+  assert.equal(meshBody.product, "azmail");
 
   const multiReq = new Request("https://azmail-download-tracker.vibelock.workers.dev/v1/not/a/door", {
     method: "POST",

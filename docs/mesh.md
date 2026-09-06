@@ -9,20 +9,27 @@ engine lands in a **sibling PR**. This repository ships:
 
 - the written contract
 - Python client helpers (`azmail.mesh.MeshClient`)
-- Worker OpenAPI stubs under `/v1/mesh/*` that point at the runtime
+- Worker leftover stubs under `/v1/mesh_enable`, `/v1/mesh_disable`,
+  `/v1/broadcast`, `/v1/listen` that point at FragGate `slug=azmail`
 
-Until the runtime engine is registered, hosted stubs keep mesh **off**
-and `mesh_disable` is a no-op success.
+Until the runtime engine is registered, leftover stubs keep the
+anonymous ring **off** and `mesh_disable` is a no-op success.
+
+**Suite QNM is a different surface.** Worker `GET|POST /v1/mesh/*`
+PROXies to aziel-runtime (QNM-BUILD-1.0 live|locked|isolated, default
+OFF, no Node Gate, no auto-heal, not anonymity). Catalog MCP `mesh_*`
++ FragGate `slug=mesh`. That is not this product-local ring.
 
 ## Off by default / easy off-switch
 
 | Action | Local CLI | Worker stub | FragGate (when live) |
 |--------|-----------|-------------|----------------------|
 | Status | `azmail mesh status` | — | `fraggate_call name=azmail op=status` |
-| Enable | `azmail mesh enable` | `POST /v1/mesh/enable` | `op=mesh_enable` |
-| **Disable** | `azmail mesh disable` | `POST /v1/mesh/disable` | `op=mesh_disable` |
-| Broadcast | `azmail mesh broadcast --text …` | `POST /v1/mesh/broadcast` | `op=broadcast` |
-| Listen | `azmail mesh listen` | `POST /v1/mesh/listen` | `op=listen` |
+| Enable | `azmail mesh enable` | leftover `POST /v1/mesh_enable` | `op=mesh_enable` |
+| **Disable** | `azmail mesh disable` | leftover `POST /v1/mesh_disable` | `op=mesh_disable` |
+| Broadcast | `azmail mesh broadcast --text …` | leftover `POST /v1/broadcast` | `op=broadcast` |
+| Listen | `azmail mesh listen` | leftover `POST /v1/listen` | `op=listen` |
+| Suite QNM status | — | `GET /v1/mesh` PROXY | FragGate `slug=mesh` `op=status` |
 | Keywords | `azmail keywords set a b` | `POST /v1/keyword-alerts` | `op=keyword_alerts` |
 | Classify | `azmail classify` | `POST /v1/airlock_classify` (alias `/v1/classify`) | `op=airlock_classify` |
 

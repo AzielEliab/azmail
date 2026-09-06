@@ -21,9 +21,10 @@ How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 v0.1 is a **local airlock + compose + mesh client helpers**. It is **not**
 a public MTA. It does **not** send internet email. Hosted
 `/v1/airlock_classify` (leftover alias `/v1/classify`) and `/v1/scrub`
-are advisory demos and are not stored. `/v1/fraggate/*` PROXY to
-aziel-runtime (list / describe / call) via the `AZIEL_RUNTIME` service
-binding.
+are advisory demos and are not stored. `/v1/fraggate/*` and `/v1/mesh/*` PROXY to
+aziel-runtime via the `AZIEL_RUNTIME` service binding. Suite QNM is
+default OFF (live|locked|isolated). Product-local leftover ring is
+`POST /v1/mesh_disable`, not `/v1/mesh/*`.
 Anonymous mesh chat and mail ops run via
 [aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate
 ([kernel](https://github.com/AzielEliab/fraggate)); the engine lands in a
@@ -78,7 +79,8 @@ URL pattern (same as sibling Aziel Eliab products):
 | `/v1/fraggate/list` | PROXY → aziel-runtime FragGate list |
 | `/v1/fraggate/describe` | PROXY → aziel-runtime FragGate describe |
 | `/v1/fraggate/call` | PROXY → aziel-runtime FragGate call |
-| `/v1/mesh/disable` | Easy mesh off-switch |
+| `/v1/mesh` | PROXY → suite QNM status (default OFF) |
+| `/v1/mesh_disable` | Leftover product-local easy off-switch |
 | `/v1/skill` | Agent skill |
 | `/openapi.json` | OpenAPI 3.1 |
 
@@ -133,8 +135,8 @@ their own.
 
 ## Anonymous MCP mesh
 
-Off **by default**. Easy off-switch: `azmail mesh disable` or
-`POST /v1/mesh/disable`.
+Off **by default**. Easy off-switch: `azmail mesh disable` or leftover
+`POST /v1/mesh_disable` (not suite QNM `POST /v1/mesh/disable`).
 
 ```bash
 azmail mesh status          # enabled: false
