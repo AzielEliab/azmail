@@ -34,15 +34,22 @@ Same door as the `fraggate_call` MCP tool (`slug=azmail`). Kernel:
 https://github.com/AzielEliab/fraggate. Live FragGate classify op is
 `airlock_classify` (not leftover `classify`).
 
-This Worker `/v1/fraggate/*` (list / describe / call) and `/v1/runtime/*`
-PROXY to aziel-runtime via the `AZIEL_RUNTIME` service binding. Local ops
-are `/v1/{op}` only.
+This Worker `/v1/fraggate/*` (list / describe / call), `/v1/runtime/*`,
+and `/v1/mesh/*` PROXY to aziel-runtime via the `AZIEL_RUNTIME` service
+binding. Local ops are `/v1/{op}` only.
 
 **Human UI stays on this Worker / `azmail ui`.** AI path is FragGate.
 
-Mesh is **off by default**. `mesh_disable` is the easy off-switch. Broadcasts
-refuse doxxing and credential-harvest content. Handles are `anon-…` (no PII).
-Keyword alerts fire without revealing identity.
+**Two meshes, kept separate:**
+
+- Suite QNM (QNM-BUILD-1.0): `GET /v1/mesh` PROXY. Default OFF.
+  live|locked|isolated. No Node Gate. No auto-heal. Not anonymity.
+  Catalog MCP `mesh_*` + FragGate `slug=mesh`.
+- AZMail product-local leftover ring: `POST /v1/mesh_disable` (easy
+  off-switch). Agents: FragGate `slug=azmail`
+  `op=mesh_enable|mesh_disable|broadcast|listen`. Broadcasts refuse
+  doxxing and credential-harvest content. Handles are `anon-…` (no PII).
+  Keyword alerts fire without revealing identity.
 
 ## Human Worker (not the agent door)
 
@@ -57,7 +64,12 @@ Host: `https://azmail-download-tracker.vibelock.workers.dev`
 | POST | `/v1/classify` | Leftover alias of `airlock_classify`. |
 | POST | `/v1/scrub` | Human-UI demo scrub. Not stored. |
 | POST | `/v1/keyword-alerts` | Demo match. Agents use FragGate `keyword_alerts`. |
-| POST | `/v1/mesh/*` | Stubs that point at FragGate. Off by default. |
+| POST | `/v1/mesh_enable` | Leftover product-local ring stub (not suite QNM). |
+| POST | `/v1/mesh_disable` | Leftover product-local easy off-switch. |
+| POST | `/v1/broadcast` | Leftover product-local broadcast stub. |
+| POST | `/v1/listen` | Leftover product-local listen stub. |
+| GET | `/v1/mesh` | PROXY → aziel-runtime suite QNM status. Default OFF. |
+| GET | `/v1/mesh/nodes` | PROXY → aziel-runtime Live Nodes roster. |
 | GET | `/v1/fraggate/list` | PROXY → aziel-runtime FragGate list. |
 | GET | `/v1/fraggate/describe` | PROXY → aziel-runtime FragGate describe. |
 | POST | `/v1/fraggate/call` | PROXY → aziel-runtime FragGate call. |
@@ -91,7 +103,8 @@ curl -s -A 'Mozilla/5.0' https://azmail-download-tracker.vibelock.workers.dev/v1
 curl -s -A 'Mozilla/5.0' -X POST https://azmail-download-tracker.vibelock.workers.dev/v1/airlock_classify \
   -H 'content-type: application/json' \
   -d '{"from":"help@paypa1-verify.com","subject":"URGENT verify","body_text":"reset your password immediately"}'
-curl -s -A 'Mozilla/5.0' -X POST https://azmail-download-tracker.vibelock.workers.dev/v1/mesh/disable -d '{}'
+curl -s -A 'Mozilla/5.0' -X POST https://azmail-download-tracker.vibelock.workers.dev/v1/mesh_disable -d '{}'
+curl -s -A 'Mozilla/5.0' https://azmail-download-tracker.vibelock.workers.dev/v1/mesh
 ```
 
 ## Local (after one-click install)

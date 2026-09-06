@@ -5,7 +5,10 @@ Public identity: **Aziel Eliab** only.
 This is an APP 1.0 anti-phishing Mail Airlock. It is not a public MTA,
 not AZ-OS, not Lumen, and not a mixnet.
 
-Mesh is off by default. `mesh_disable` is the easy off-switch.
+Mesh is off by default. Product-local leftover `mesh_disable` is the easy
+off-switch for the anonymous ring. Suite QNM (`/v1/mesh/*` PROXY) is a
+separate rollup — default OFF; live|locked|isolated; no Node Gate; no
+auto-heal; not anonymity.
 
 Agent path is FragGate only:
 `POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call`

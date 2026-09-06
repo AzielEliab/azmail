@@ -103,7 +103,11 @@ Identity is Aziel Eliab only.
 Anonymous MCP mesh mail is a product-side contract: off by default, easy
 off-switch, keyword alerts without identity, no PII in handles, rate
 limits, refuse doxxing and credential harvest. Live execution is
-FragGate (sibling runtime PR). See [mesh.md](mesh.md).
+FragGate `slug=azmail` (sibling runtime PR). Worker leftover stubs are
+`/v1/mesh_disable` etc. Suite QNM (`GET /v1/mesh` PROXY, catalog
+`mesh_*`, FragGate `slug=mesh`) is a separate rollup — default OFF,
+live|locked|isolated, no Node Gate, no auto-heal, not anonymity. See
+[mesh.md](mesh.md).
 
 ## Independence
 
