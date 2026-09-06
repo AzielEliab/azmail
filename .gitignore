@@ -1,0 +1,13 @@
+.venv
+__pycache__/
+*.pyc
+dist/
+*.egg-info/
+.pytest_cache/
+examples/_out
+node_modules/
+workers/download-tracker/node_modules/
+.wrangler
+.azmail/
+*.tar.gz
+!workers/download-tracker/public/azmail-0.1.0.tar.gz

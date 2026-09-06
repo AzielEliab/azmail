@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "azmail"
+version = "0.1.0"
+description = "AZMail: APP 1.0 anti-phishing Mail Airlock. Local isolate/analyze/classify. Not a public MTA. Author Aziel Eliab."
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "Aziel Eliab"}]
+requires-python = ">=3.10"
+keywords = [
+  "azmail",
+  "anti-phishing",
+  "airlock",
+  "app-1.0",
+  "spf",
+  "dkim",
+  "dmarc",
+  "mesh",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Intended Audience :: Developers",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+azmail = "azmail.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/AzielEliab/azmail"
+Download = "https://azmail-download-tracker.vibelock.workers.dev/download?asset=azmail-0.1.0.tar.gz"
+Issues = "https://github.com/AzielEliab/azmail/issues"
+Counted-downloads = "https://azmail-download-tracker.vibelock.workers.dev/"
+Runtime = "https://aziel-runtime.vibelock.workers.dev/"
+FragGate = "https://github.com/AzielEliab/fraggate"
+Library = "https://www.azielcorpuslibrary.net/"
+GodLock = "https://godlock.uk"
+Author = "https://www.azieleliab.com"
+
+[tool.setuptools.packages.find]
+include = ["azmail*"]
+
+[tool.setuptools.package-data]
+azmail = ["web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
