@@ -11,7 +11,7 @@ account_id = "ac575a9b822bea2bed97d0ab73aed238"
 # npx wrangler deploy
 [[kv_namespaces]]
 binding = "DOWNLOADS"
-id = "00000000000000000000000000000000"
+id = "c290b3ba63fe403293d8af09ea84be63"
 
 [assets]
 directory = "./public"
