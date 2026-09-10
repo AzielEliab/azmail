@@ -87,7 +87,7 @@ footer a { color:var(--gold); }
 Then run: azmail ui  →  http://127.0.0.1:8876 (this computer only). v0.1 does not send internet email.</pre>
 <p class="iso">Isolated counter: Worker <code>azmail-download-tracker</code>, KV AZMAIL_DOWNLOADS. /v1 does not increment.
 <strong>Human UI is this page.</strong> Classify button posts <code>/v1/airlock_classify</code> (FragGate op). Door paths
-<code>/v1/fraggate/list|describe|call</code> and <code>/v1/mesh/*</code> PROXY to aziel-runtime. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity.
+<code>/v1/fraggate/list|describe|call</code> and <code>/v1/mesh/*</code> PROXY to aziel-runtime. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer (hub cite / Worker cross-map only; no public qnsd proxy). No Node Gate. No auto-heal. Not anonymity.
 AI / MCP path is FragGate only — no separate mail MCP:
 <code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code> body <code>{"slug":"azmail","op":"airlock_classify","payload":{}}</code>.
 Catalog MCP <code>mesh_*</code> · FragGate <code>slug=mesh</code>. Product-local leftover ring is <code>/v1/mesh_disable</code>.
@@ -95,7 +95,7 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
 <a href="/count">/count</a> · <a href="/stats">/stats</a> · <a href="/v1/skill">Skill</a> · <a href="/ai">AI / FragGate</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/mcp">/mcp</a> · <a href="https://github.com/AzielEliab/azmail">GitHub</a></p>
 <div id="meshStrip" aria-label="Suite Live Nodes">
   <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
-  <div id="meshLine">Suite mesh: off (default). QNM-BUILD-1.0. Not an anonymity network.</div>
+  <div id="meshLine">Suite mesh: off (default). QNM-BUILD-1.0. QNS-CD-1.0. Not an anonymity network.</div>
   <div class="rollup">live <b id="qnmLive">0</b> · locked <b id="qnmLocked">0</b> · isolated <b id="qnmIsolated">0</b></div>
   <div>No Node Gate · No auto-heal · Aziel Eliab only</div>
   <div>
@@ -104,7 +104,7 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
     <button id="meshJoin" type="button" title="Join as azmail. Refused while mesh is OFF. No auto-join.">Join</button>
     <button id="meshLeave" type="button" title="Leave this node. No auto-heal.">Leave</button>
   </div>
-  <p id="meshProducts" class="iso" style="margin:0">Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · not AnonBroadcast · not AZMail leftover ring</p>
+  <p id="meshProducts" class="iso" style="margin:0">Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · QNS-CD-1.0 hub cite · not AnonBroadcast · not AZMail leftover ring · no public qnsd proxy</p>
 </div>
 
 <div class="layout">
@@ -264,13 +264,13 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
     document.getElementById("qnmIsolated").textContent = String(isolated);
     var line = document.getElementById("meshLine");
     if (on) line.textContent = "Suite mesh: on · live " + live + " · locked " + locked + " · isolated " + isolated + ". Not an anonymity network.";
-    else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "Suite mesh: off (unavailable). QNM-BUILD-1.0. Not an anonymity network.";
-    else line.textContent = "Suite mesh: off (default). QNM-BUILD-1.0. Not an anonymity network.";
+    else if (j.status === "unavailable" || (j.ok === false && j.error)) line.textContent = "Suite mesh: off (unavailable). QNM-BUILD-1.0. QNS-CD-1.0. Not an anonymity network.";
+    else line.textContent = "Suite mesh: off (default). QNM-BUILD-1.0. QNS-CD-1.0. Not an anonymity network.";
     var products = j.products_present || j.products || [];
     var names = Array.isArray(products) ? products.map(function (p) { return (typeof p === "string" ? p : (p && (p.product || p.slug)) || ""); }).filter(Boolean) : [];
     var nodes = Array.isArray(j.nodes) ? j.nodes : [];
     var extra = names.length ? " · products " + names.join(", ") : (nodes.length ? " · " + nodes.length + " node labels" : "");
-    document.getElementById("meshProducts").textContent = "Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · not AnonBroadcast · not AZMail leftover ring" + extra;
+    document.getElementById("meshProducts").textContent = "Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · QNS-CD-1.0 hub cite · not AnonBroadcast · not AZMail leftover ring · no public qnsd proxy" + extra;
   }
   async function meshGet(path) {
     var r = await fetch(path, { headers: { "user-agent": "Mozilla/5.0", accept: "application/json" } });

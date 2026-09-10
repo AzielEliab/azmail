@@ -20,6 +20,19 @@ PROXies to aziel-runtime (QNM-BUILD-1.0 live|locked|isolated, default
 OFF, no Node Gate, no auto-heal, not anonymity). Catalog MCP `mesh_*`
 + FragGate `slug=mesh`. That is not this product-local ring.
 
+**QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh
+cross-map only — not a Softwares-tab product. `QNS_CD_SPEC` / `QNS_CD`
+live in `workers/download-tracker/src/mesh.js` and appear on mesh
+status / Live Nodes / health / `/mcp` pointer payloads. Local `qnsd` is
+coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime
+cites + catalog field live in
+[aziel-runtime](https://github.com/AzielEliab/aziel-runtime)
+([QNM-WP-1.0](https://github.com/AzielEliab/aziel-runtime/blob/main/docs/designs/QNM-WP-1.0.md),
+[NODE_MESH](https://github.com/AzielEliab/aziel-runtime/blob/main/docs/NODE_MESH.md)).
+Pair custody is [AZInterface](https://github.com/AzielEliab/azinterface).
+This Worker does **not** implement qnsd and does **not** expose a public
+qnsd proxy. Mesh stays default OFF.
+
 ## Off by default / easy off-switch
 
 | Action | Local CLI | Worker stub | FragGate (when live) |

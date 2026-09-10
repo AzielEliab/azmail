@@ -45,6 +45,13 @@ binding. Local ops are `/v1/{op}` only.
 - Suite QNM (QNM-BUILD-1.0): `GET /v1/mesh` PROXY. Default OFF.
   live|locked|isolated. No Node Gate. No auto-heal. Not anonymity.
   Catalog MCP `mesh_*` + FragGate `slug=mesh`.
+  **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker
+  mesh cross-map only — not a Softwares-tab product. Local `qnsd` lives
+  in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime cites +
+  catalog field live in
+  [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair
+  custody is [AZInterface](https://github.com/AzielEliab/azinterface).
+  No public qnsd proxy on this Worker.
 - AZMail product-local leftover ring: `POST /v1/mesh_disable` (easy
   off-switch). Agents: FragGate `slug=azmail`
   `op=mesh_enable|mesh_disable|broadcast|listen`. Broadcasts refuse

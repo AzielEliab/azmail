@@ -45,7 +45,7 @@ No network. No ML. Not a public MTA.
 - Spec: `docs/whitepaper.md`, `docs/mesh.md`
 - Skill: `SKILL.md` (same text at Worker `GET /v1/skill`)
 - FragGate / suite-mesh door proxy: `workers/download-tracker/src/door.js` + `AZIEL_RUNTIME` binding (`/v1/fraggate/*`, `/v1/runtime/*`, `/v1/mesh/*`)
-- Suite Live Nodes strip: `workers/download-tracker/src/mesh.js` + Worker homepage. Keep leftover product-local `/v1/mesh_disable` off `/v1/mesh/*`.
+- Suite Live Nodes strip: `workers/download-tracker/src/mesh.js` + Worker homepage. Keep leftover product-local `/v1/mesh_disable` off `/v1/mesh/*`. QNS-CD-1.0 is a hub cite / `QNS_CD` cross-map on that file (not a Softwares-tab product; do not add a public qnsd proxy).
 - Classify UI / Worker route must use FragGate op `airlock_classify` (`/v1/classify` is leftover alias only)
 - Flutter: `mobile/`
 - Isolated counter: `workers/download-tracker/`
