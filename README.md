@@ -25,6 +25,13 @@ are advisory demos and are not stored. `/v1/fraggate/*` and `/v1/mesh/*` PROXY t
 aziel-runtime via the `AZIEL_RUNTIME` service binding. Suite QNM is
 default OFF (live|locked|isolated). Product-local leftover ring is
 `POST /v1/mesh_disable`, not `/v1/mesh/*`.
+**QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh
+cross-map on `workers/download-tracker/src/mesh.js` — not a
+Softwares-tab product and not a public `qnsd` proxy. Local `qnsd` is
+coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime
+cites + catalog field live in
+[aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair
+custody is [AZInterface](https://github.com/AzielEliab/azinterface).
 Anonymous mesh chat and mail ops run via
 [aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate
 ([kernel](https://github.com/AzielEliab/fraggate)); the engine lands in a
@@ -152,7 +159,9 @@ azmail keywords set lighthouse invoice
 
 Live mesh for agents is FragGate only
 (`POST /v1/fraggate/call` `slug=azmail`), not this process and not a
-mail MCP on the product Worker. See [docs/mesh.md](docs/mesh.md).
+mail MCP on the product Worker. Suite Live Nodes advertise the
+**QNS-CD-1.0** cross-map (`qns_cd` on mesh status / health / `/mcp`
+pointer). See [docs/mesh.md](docs/mesh.md).
 
 ## CLI
 
@@ -207,6 +216,8 @@ SKILL.md         agent skill (also GET /v1/skill)
 ## Cross-links (optional, not required)
 
 - Runtime: https://github.com/AzielEliab/aziel-runtime · https://aziel-runtime.vibelock.workers.dev/
+- QNM local node (qnsd): https://github.com/AzielEliab/qnm-node
+- AZInterface (pair custody): https://github.com/AzielEliab/azinterface
 - FragGate: https://github.com/AzielEliab/fraggate
 - Digital Library: https://www.azielcorpuslibrary.net/
 - godlock.uk

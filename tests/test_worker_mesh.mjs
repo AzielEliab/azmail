@@ -1,12 +1,15 @@
 /**
  * Suite mesh Live Nodes + QNM-BUILD-1.0 contract.
+ * QNS-CD-1.0 photon QNS1 packet transfer — hub cite / Worker cross-map only.
  * Default OFF. live|locked|isolated. No Node Gate. No auto-heal. Not anonymity.
- * Product-local leftover ring stays off /v1/mesh/* .
+ * No public qnsd proxy. Product-local leftover ring stays off /v1/mesh/* .
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
 import {
   QNM_SPEC,
+  QNS_CD_SPEC,
+  QNS_CD,
   MESH_DEFAULT_OFF,
   MESH_ANONYMITY_NETWORK,
   MESH_NODE_GATE,
@@ -14,6 +17,7 @@ import {
   MESH_OPS,
   MESH_PATH,
   MESH_IDENTITY,
+  MESH_NOTE,
   PRODUCT_MESH_DISABLE,
   alignLiveNodes,
   emptyMesh,
@@ -28,6 +32,23 @@ import { handleRuntimeApi } from "../workers/download-tracker/src/runtime.js";
 import { homeHtml } from "../workers/download-tracker/src/ui.js";
 
 assert.equal(QNM_SPEC, "QNM-BUILD-1.0");
+assert.equal(QNS_CD_SPEC, "QNS-CD-1.0");
+assert.equal(QNS_CD.spec, QNS_CD_SPEC);
+assert.equal(QNS_CD.title, "photon QNS1 packet transfer");
+assert.equal(QNS_CD.kind, "hub_cite");
+assert.equal(QNS_CD.softwares_tab, false);
+assert.equal(QNS_CD.engine, false);
+assert.equal(QNS_CD.public_qnsd_proxy, false);
+assert.equal(QNS_CD.node_gate, false);
+assert.equal(QNS_CD.default_off, true);
+assert.equal(QNS_CD.qnsd, "local qnm-node only");
+assert.equal(QNS_CD.pair_custody, "azinterface");
+assert.equal(QNS_CD.qnm_node, "https://github.com/AzielEliab/qnm-node");
+assert.equal(QNS_CD.aziel_runtime, "https://github.com/AzielEliab/aziel-runtime");
+assert.equal(QNS_CD.azinterface, "https://github.com/AzielEliab/azinterface");
+assert.match(QNS_CD.designs.qnm_wp, /docs\/designs\/QNM-WP-1\.0\.md$/);
+assert.match(QNS_CD.note, /QNS-CD-1\.0 photon QNS1 packet transfer/);
+assert.match(MESH_NOTE, /QNS-CD-1\.0/);
 assert.equal(MESH_DEFAULT_OFF, true);
 assert.equal(MESH_ANONYMITY_NETWORK, false);
 assert.equal(MESH_NODE_GATE, false);
@@ -44,6 +65,8 @@ assert.equal(empty.node_gate, false);
 assert.equal(empty.auto_heal, false);
 assert.equal(empty.anonymity_network, false);
 assert.equal(empty.identity, "Aziel Eliab");
+assert.equal(empty.qns_cd.spec, QNS_CD_SPEC);
+assert.equal(empty.qns_cd.public_qnsd_proxy, false);
 
 const qnm = parseMeshDoc({
   spec: "QNM-BUILD-1.0",
@@ -66,8 +89,11 @@ assert.equal(pub.nodes, undefined);
 assert.equal(pub.slug, "mesh");
 assert.equal(pub.product, "azmail");
 assert.equal(pub.leftover_product_mesh.disable, "/v1/mesh_disable");
+assert.equal(pub.qns_cd.spec, QNS_CD_SPEC);
+assert.equal(pub.qns_cd.public_qnsd_proxy, false);
+assert.equal(pub.qns_cd.softwares_tab, false);
 assert.match(meshStatusLine(pub), /Suite mesh: on · live 2 · locked 1 · isolated 3/);
-assert.match(meshStatusLine(emptyMesh()), /Suite mesh: off \(default\)\. QNM-BUILD-1\.0/);
+assert.match(meshStatusLine(emptyMesh()), /Suite mesh: off \(default\)\. QNM-BUILD-1\.0\. QNS-CD-1\.0/);
 assert.equal(alignLiveNodes({ mesh: { enabled: true, rollup: { live: 4, locked: 1, isolated: 0 } } }), 4);
 assert.equal(alignLiveNodes({ mesh: { enabled: false, live_nodes: 9 } }), 0);
 
@@ -78,7 +104,11 @@ assert.equal(pointer.fraggate_slug, "mesh");
 assert.equal(pointer.node_gate, false);
 assert.equal(pointer.auto_heal, false);
 assert.equal(pointer.anonymity_network, false);
+assert.equal(pointer.qns_cd.spec, QNS_CD_SPEC);
+assert.equal(pointer.qns_cd.public_qnsd_proxy, false);
 assert.match(pointer.note, /Not AZMail's product-local ring/);
+assert.match(pointer.note, /QNS-CD-1\.0/);
+assert.match(pointer.note, /Not a public qnsd proxy/);
 
 assert.equal(classifyV1Path("/v1/mesh").kind, "door");
 assert.equal(classifyV1Path("/v1/mesh/nodes").originPath, "/v1/mesh/nodes");
@@ -95,6 +125,7 @@ assert.match(html, /id="meshStrip"/);
 assert.match(html, /id="meshLiveCount"/);
 assert.match(html, /id="meshLine"/);
 assert.match(html, /QNM-BUILD-1\.0/);
+assert.match(html, /QNS-CD-1\.0/);
 assert.match(html, /Live Nodes/);
 assert.match(html, /No Node Gate/);
 assert.match(html, /No auto-heal/);
@@ -105,6 +136,7 @@ assert.match(html, /\/v1\/mesh_disable/);
 assert.doesNotMatch(html, /id="node-gate"/);
 assert.doesNotMatch(html, /href="\/node-gate"/);
 assert.doesNotMatch(html, /auto-heal this node/);
+assert.doesNotMatch(html, /\/v1\/qnsd/);
 assert.doesNotMatch(html, /fetch\("\/v1\/mesh\/enable"/);
 assert.match(html, /fetch\("\/v1\/mesh_enable"/);
 
@@ -200,6 +232,8 @@ try {
   assert.equal(mcp.mesh.enabled_default, false);
   assert.equal(mcp.mesh.fraggate_slug, "mesh");
   assert.equal(mcp.mesh.rollup, "live|locked|isolated");
+  assert.equal(mcp.mesh.qns_cd.spec, "QNS-CD-1.0");
+  assert.equal(mcp.mesh.qns_cd.public_qnsd_proxy, false);
   assert.match(mcp.note, /mesh_\*/);
   assert.match(mcp.note, /Product-local leftover ring/);
 
@@ -208,8 +242,11 @@ try {
   const health = await healthRes.json();
   assert.equal(health.mesh.enabled_default, false);
   assert.equal(health.mesh.identity, "Aziel Eliab");
+  assert.equal(health.mesh.qns_cd.spec, "QNS-CD-1.0");
+  assert.equal(health.mesh.qns_cd.public_qnsd_proxy, false);
   assert.ok(health.door_proxy.includes("/v1/mesh"));
   assert.ok(health.leftover_product_mesh.includes("/v1/mesh_disable"));
+  assert.ok(!health.door_proxy.includes("/v1/qnsd"));
 
   const openapiPaths = meshOpenApiPaths();
   assert.ok(openapiPaths["/v1/mesh"].get);
@@ -218,4 +255,4 @@ try {
   globalThis.fetch = previousFetch;
 }
 
-console.log("worker mesh Live Nodes / QNM smoke ok");
+console.log("worker mesh Live Nodes / QNM / QNS-CD-1.0 smoke ok");

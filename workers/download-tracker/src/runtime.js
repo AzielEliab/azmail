@@ -61,7 +61,7 @@ This Worker \`/v1/fraggate/*\` (list / describe / call), \`/v1/runtime/*\`, and 
 **Human UI stays on this Worker / \`azmail ui\`.** AI path is FragGate.
 
 **Two meshes, kept separate:**
-- Suite QNM (QNM-BUILD-1.0): \`GET /v1/mesh\` PROXY. Default OFF. live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`.
+- Suite QNM (QNM-BUILD-1.0): \`GET /v1/mesh\` PROXY. Default OFF. live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh cross-map only — not a Softwares-tab product. Local qnsd lives in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. Pair custody is AZInterface. No public qnsd proxy.
 - AZMail product-local leftover ring: \`POST /v1/mesh_disable\` (easy off-switch). Agents: FragGate \`slug=azmail\` \`op=mesh_enable|mesh_disable|broadcast|listen\`.
 
 Suite mesh is **off by default**. Product-local \`mesh_disable\` is the easy off-switch for the anonymous ring.
@@ -183,7 +183,7 @@ function openapiSpec(origin) {
       title: "AZMail runtime",
       version: VERSION,
       summary: "Human-UI demo only. Agents use FragGate POST /v1/fraggate/call slug=azmail op=airlock_classify. Not a mail MCP.",
-      description: LIMITATION + " Agent path: POST " + RUNTIME + "/v1/fraggate/call {slug:azmail,op,payload}. This host /v1/fraggate/* and /v1/mesh/* PROXY to aziel-runtime. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Product-local leftover ring is /v1/mesh_disable. This OpenAPI is not the agent door. Author: " + IDENTITY + " only.",
+      description: LIMITATION + " Agent path: POST " + RUNTIME + "/v1/fraggate/call {slug:azmail,op,payload}. This host /v1/fraggate/* and /v1/mesh/* PROXY to aziel-runtime. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer (hub cite / Worker cross-map only; no public qnsd proxy). No Node Gate. No auto-heal. Not anonymity. Product-local leftover ring is /v1/mesh_disable. This OpenAPI is not the agent door. Author: " + IDENTITY + " only.",
       license: { name: "Apache-2.0", identifier: "Apache-2.0" },
       contact: { name: IDENTITY, url: "https://github.com/AzielEliab/azmail" },
     },
@@ -203,7 +203,7 @@ function aiHtml(origin) {
 <p>Agent door: <code>POST ${FRAGGATE_CALL}</code> body <code>{"slug":"azmail","op":"airlock_classify","payload":{…}}</code><br>
 This host <code>/v1/fraggate/*</code> and <code>/v1/mesh/*</code> PROXY to aziel-runtime.<br>
 Catalog MCP: <code>POST ${FRAGGATE_MCP}</code> (<code>mesh_*</code> + FragGate <code>slug=mesh</code>). This Worker <code>/mcp</code> is a pointer.<br>
-Suite mesh: <code>GET ${origin}/v1/mesh</code> default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity.<br>
+Suite mesh: <code>GET ${origin}/v1/mesh</code> default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer (hub cite / Worker cross-map; no public qnsd proxy). No Node Gate. No auto-heal. Not anonymity.<br>
 Product-local leftover ring: <code>POST ${origin}/v1/mesh_disable</code> (not suite QNM).<br>
 Skill: <a href="${origin}/v1/skill">${origin}/v1/skill</a><br>
 Kernel: <a href="${FRAGGATE_SAFE()}">${FRAGGATE_SAFE()}</a></p>
@@ -234,7 +234,7 @@ function handleMcp(origin) {
     mesh: meshPointer(),
     mesh_body: { slug: "mesh", op: "status", payload: {} },
     openapi: (origin || HOST) + "/openapi.json",
-    note: "AZMail agents use FragGate only: POST /v1/fraggate/call with slug=azmail. This host /v1/fraggate/*, /v1/runtime/*, and /v1/mesh/* PROXY to aziel-runtime. Catalog MCP: POST " + FRAGGATE_MCP + " (mesh_* + slug=mesh). Suite mesh default OFF. QNM rollup live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Product-local leftover ring is /v1/mesh_disable. Human UI is this Worker / azmail ui. There is no separate mail MCP outside the door.",
+    note: "AZMail agents use FragGate only: POST /v1/fraggate/call with slug=azmail. This host /v1/fraggate/*, /v1/runtime/*, and /v1/mesh/* PROXY to aziel-runtime. Catalog MCP: POST " + FRAGGATE_MCP + " (mesh_* + slug=mesh). Suite mesh default OFF. QNM rollup live|locked|isolated. QNS-CD-1.0 hub cite / Worker cross-map only. No Node Gate. No auto-heal. Not anonymity. No public qnsd proxy. Product-local leftover ring is /v1/mesh_disable. Human UI is this Worker / azmail ui. There is no separate mail MCP outside the door.",
     limitation: LIMITATION,
   });
 }
@@ -323,7 +323,7 @@ export async function handleRuntimeApi(request, url, env) {
   if (path === "/openapi.json" && request.method === "GET") return json(openapiSpec(originOf(request)));
   if ((path === "/ai" || url.pathname === "/ai/") && request.method === "GET") return html(aiHtml(originOf(request)));
   if (path === "/llms.txt" || path === "/ai.txt") {
-    return new Response(`AZMail ${VERSION} by ${IDENTITY}. Apache-2.0. ${LIMITATION}\nAgent path (FragGate only): POST ${FRAGGATE_CALL} {"slug":"azmail","op":"airlock_classify","payload":{}}\nThis Worker /v1/fraggate/*, /v1/runtime/*, and /v1/mesh/* PROXY to aziel-runtime. Local classify is POST /v1/airlock_classify (/v1/classify leftover alias).\nCatalog MCP: POST ${FRAGGATE_MCP} (mesh_* + slug=mesh)\nThis Worker /mcp is a pointer, not a second MCP.\nSuite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. No Node Gate. No auto-heal. Not anonymity.\nProduct-local leftover ring: POST /v1/mesh_disable (not suite QNM).\nHuman UI: ${originOf(request)}/\nSkill: ${originOf(request)}/v1/skill\nOpenAPI: ${originOf(request)}/openapi.json\n`, {
+    return new Response(`AZMail ${VERSION} by ${IDENTITY}. Apache-2.0. ${LIMITATION}\nAgent path (FragGate only): POST ${FRAGGATE_CALL} {"slug":"azmail","op":"airlock_classify","payload":{}}\nThis Worker /v1/fraggate/*, /v1/runtime/*, and /v1/mesh/* PROXY to aziel-runtime. Local classify is POST /v1/airlock_classify (/v1/classify leftover alias).\nCatalog MCP: POST ${FRAGGATE_MCP} (mesh_* + slug=mesh)\nThis Worker /mcp is a pointer, not a second MCP.\nSuite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer (hub cite / Worker cross-map only; no public qnsd proxy). No Node Gate. No auto-heal. Not anonymity.\nProduct-local leftover ring: POST /v1/mesh_disable (not suite QNM).\nHuman UI: ${originOf(request)}/\nSkill: ${originOf(request)}/v1/skill\nOpenAPI: ${originOf(request)}/openapi.json\n`, {
       headers: { "Content-Type": "text/plain; charset=utf-8", ...corsHeaders() },
     });
   }
