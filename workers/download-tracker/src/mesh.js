@@ -6,7 +6,8 @@
  * No Node Gate. No auto-heal. Not an anonymity network.
  * /v1/mesh/* PROXY to aziel-runtime (AZIEL_RUNTIME binding).
  * AZMail product-local leftover mesh stays at /v1/mesh_enable|mesh_disable|broadcast|listen.
- * Author: Aziel Eliab only.
+ * SPLIT THE WIRES (STW-1.0) + COLD-COPY SURVIVAL (CCS-1.0) locked law.
+ * Mesh hop default-off stays. Author: Aziel Eliab only.
  */
 import { FRAGGATE_CALL, FRAGGATE_MCP, IDENTITY, RUNTIME } from "./engine.js";
 
@@ -64,8 +65,220 @@ export const QNS_CD = Object.freeze({
   note: "QNS-CD-1.0 photon QNS1 packet transfer. Local qnsd is coded in AzielEliab/qnm-node. Runtime cites + catalog field live in AzielEliab/aziel-runtime. AZInterface has pair custody. Hub cite / Worker mesh cross-map only. Not a Softwares-tab product. No public qnsd proxy. Author: Aziel Eliab only.",
 });
 
+export const STW_SPEC = "STW-1.0";
+export const CCS_SPEC = "CCS-1.0";
+export const TICK_MIN_SEC = 0.5;
+export const TICK_MAX_SEC = 1.0;
+export const DWELL_SEC = 777;
+export const TIP_HASH_HEX_LEN = 64;
+export const TIP_TICK_BYTES = 65;
+export const PLANE_TIP = "tip";
+export const PLANE_PAYLOAD = "payload";
+export const SOCKET_TICK = "tick_1s";
+export const SOCKET_DWELL = "dwell_777s";
+export const MESH_HOP_DEFAULT_OFF = true;
+export const COLD_COPY_MIN = 2;
+const PRESENCE_WIRE = Object.freeze({ live: "L", locked: "K", isolated: "I" });
+
+export const STW = Object.freeze({
+  spec: STW_SPEC,
+  title: "SPLIT THE WIRES",
+  author: MESH_IDENTITY,
+  identity: MESH_IDENTITY,
+  hop_default: false,
+  hop_default_off: true,
+  tick_min_sec: TICK_MIN_SEC,
+  tick_max_sec: TICK_MAX_SEC,
+  dwell_sec: DWELL_SEC,
+  tip_only: true,
+  tip_fields: Object.freeze(["presence", "tip_hash"]),
+  tip_tick_bytes: TIP_TICK_BYTES,
+  tip_hash_hex_len: TIP_HASH_HEX_LEN,
+  payload_plane: "pull",
+  update: "proof",
+  cite: "prev+lockset",
+  fail_closed: true,
+  clock_desync_is_yes: false,
+  ambiguous: "isolate",
+  equivocation: "ends_peer",
+  emit_last: "local",
+  phoenix: "local_only",
+  auto_splice: false,
+  heartbeat_loss_is_poison: false,
+  heartbeat_loss_applies_last_packet: false,
+  sockets: Object.freeze({ [SOCKET_TICK]: TICK_MAX_SEC, [SOCKET_DWELL]: DWELL_SEC }),
+  note: "SPLIT THE WIRES STW-1.0. Tip-only 0.5–1s tick (presence+tip hash fixed-size). Pull-only payload plane. Update is proof, not a timer (cite prev+lockset fail-closed; 777s dwell after valid cite; clock desync is not yes; ambiguous isolates). Equivocation ends peer. Emit last locally. Phoenix local only. Partition does not auto-splice. Heartbeat loss is not poison and does not apply the last packet. 1s tick socket is not the 777s dwell socket. Mesh hop default-off stays. Author: Aziel Eliab only.",
+});
+
+export const CCS = Object.freeze({
+  spec: CCS_SPEC,
+  title: "COLD-COPY SURVIVAL",
+  author: MESH_IDENTITY,
+  identity: MESH_IDENTITY,
+  multiply: true,
+  min_copies: COLD_COPY_MIN,
+  live_body_sync: false,
+  tip_erase: "expensive",
+  server_pull_wipes_cold: false,
+  poison: "hash_absolute_refuse",
+  data_outlives_creators: true,
+  keeps_split_the_wires: true,
+  hop_default_off: true,
+  note: "COLD-COPY SURVIVAL CCS-1.0. Multiply cold copies. Refuse live body sync. Tip is expensive to erase. Server pull cannot wipe cold replicas. Hash-absolute poison refuse (not interpret). Data outlives creators. Keeps SPLIT THE WIRES. Mesh hop default-off stays. Author: Aziel Eliab only.",
+});
+
 export const MESH_NOTE =
-  "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer. Suite mesh default off. Live|locked|isolated counts only. No Node Gate. No auto-heal. Not an anonymity network. No public qnsd proxy. Author: Aziel Eliab only.";
+  "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer. SPLIT THE WIRES STW-1.0. COLD-COPY SURVIVAL CCS-1.0. Suite mesh default off. Hop default-off. Live|locked|isolated counts only. No Node Gate. No auto-heal. Not an anonymity network. No public qnsd proxy. Author: Aziel Eliab only.";
+
+function hex64(value) {
+  const digest = String(value || "").trim().toLowerCase();
+  if (digest.length !== TIP_HASH_HEX_LEN) return null;
+  if (!/^[0-9a-f]+$/.test(digest)) return null;
+  return digest;
+}
+
+export function encodeTipTick(presence, tipHash, payload) {
+  if (payload != null && payload !== "") {
+    return { ok: false, code: "STW_TIP_ONLY", plane: PLANE_TIP, payload: null };
+  }
+  if (!PRESENCE_WIRE[presence]) {
+    return { ok: false, code: "STW_PRESENCE_UNKNOWN", presence };
+  }
+  const digest = hex64(tipHash);
+  if (!digest) return { ok: false, code: "STW_TIP_HASH_SIZE", want: TIP_HASH_HEX_LEN };
+  const wire = PRESENCE_WIRE[presence] + digest;
+  return {
+    ok: true,
+    code: "STW_OK",
+    plane: PLANE_TIP,
+    socket: SOCKET_TICK,
+    presence,
+    tip_hash: digest,
+    wire,
+    bytes: wire.length,
+    payload: null,
+  };
+}
+
+export function tickIntervalOk(seconds) {
+  const dt = Number(seconds);
+  return Number.isFinite(dt) && dt >= TICK_MIN_SEC && dt <= TICK_MAX_SEC;
+}
+
+export function admitPayload({ direction, plane = PLANE_PAYLOAD, socket = SOCKET_DWELL, hop_enabled = false } = {}) {
+  if (hop_enabled) return { ok: false, code: "STW_HOP_DEFAULT_OFF", hop: false, enabled: false };
+  if (plane !== PLANE_PAYLOAD) return { ok: false, code: "STW_PLANE_SPLIT", plane };
+  if (socket !== SOCKET_DWELL) return { ok: false, code: "STW_SOCKET_SPLIT", note: "1s tick socket is not the 777s dwell socket" };
+  if (String(direction || "").trim().toLowerCase() !== "pull") {
+    return { ok: false, code: "STW_PULL_ONLY", direction, payload_plane: "pull" };
+  }
+  return { ok: true, code: "STW_OK", plane: PLANE_PAYLOAD, direction: "pull", socket: SOCKET_DWELL, hop: false };
+}
+
+export function decideUpdate(event) {
+  const ev = event && typeof event === "object" ? event : {};
+  const kind = String(ev.kind || ev.reason || "").trim().toLowerCase();
+  if (ev.clock_desync || kind === "clock_desync" || kind === "desync") {
+    return { ok: false, apply: false, yes: false, code: "STW_CLOCK_DESYNC_NOT_YES" };
+  }
+  if (ev.ambiguous || kind === "ambiguous") {
+    return { ok: false, apply: false, isolate: true, code: "STW_AMBIGUOUS_ISOLATE" };
+  }
+  if (kind === "heartbeat_loss" || ev.heartbeat_loss) return heartbeatLoss();
+  const timerOnly = !!ev.timer || kind === "timer";
+  const prev = ev.prev || ev.cite_prev;
+  const lockset = ev.lockset;
+  if (timerOnly && !(prev && lockset)) return { ok: false, apply: false, code: "STW_UPDATE_NOT_TIMER" };
+  if (!prev || !lockset || ev.valid_cite === false) {
+    return { ok: false, apply: false, fail_closed: true, code: "STW_CITE_FAIL_CLOSED" };
+  }
+  return { ok: true, apply: true, dwell_sec: DWELL_SEC, fail_closed: false, code: "STW_OK", cite: "prev+lockset" };
+}
+
+export function equivocationEndsPeer(peer, tips) {
+  const unique = new Set((tips || []).map((t) => String(t || "").trim().toLowerCase()).filter(Boolean));
+  if (unique.size > 1) return { ok: true, peer, ended: true, apply: false, code: "STW_EQUIVOCATION_ENDS_PEER" };
+  return { ok: true, peer, ended: false, code: "STW_OK" };
+}
+
+export function emitLast({ scope = "local" } = {}) {
+  if (String(scope).trim().toLowerCase() !== "local") return { ok: false, relay: false, code: "STW_EMIT_LAST_LOCAL" };
+  return { ok: true, emit: "last", scope: "local", relay: false, code: "STW_OK" };
+}
+
+export function phoenix({ scope = "local" } = {}) {
+  if (String(scope).trim().toLowerCase() !== "local") return { ok: false, public_restore: false, code: "STW_PHOENIX_LOCAL_ONLY" };
+  return { ok: true, scope: "local", public_restore: false, code: "STW_PHOENIX_LOCAL" };
+}
+
+export function partitionHeal({ auto_splice = false } = {}) {
+  if (auto_splice) return { ok: false, splice: false, code: "STW_NO_AUTO_SPLICE" };
+  return { ok: true, splice: false, code: "STW_PARTITION_HOLD" };
+}
+
+export function heartbeatLoss() {
+  return { ok: true, poison: false, apply: false, apply_last_packet: false, code: "STW_HEARTBEAT_LOSS_NOT_POISON" };
+}
+
+export function socketsAreSplit(tickSocket, dwellSocket) {
+  if (tickSocket === dwellSocket || tickSocket !== SOCKET_TICK || dwellSocket !== SOCKET_DWELL) {
+    return { ok: false, code: "STW_SOCKET_SPLIT", note: "1s ≠ 777s sockets" };
+  }
+  return { ok: true, tick: SOCKET_TICK, dwell: SOCKET_DWELL, code: "STW_OK" };
+}
+
+export function hopEnable() {
+  return { ok: false, enabled: false, default_off: true, code: "STW_HOP_DEFAULT_OFF", note: "Mesh hop default-off stays." };
+}
+
+export function multiplyColdCopies(copies) {
+  const rows = (copies || []).filter((c) => c != null);
+  const live = [];
+  const hashes = [];
+  for (const raw of rows) {
+    if (raw && typeof raw === "object") {
+      if (raw.cold === false || raw.live === true) live.push(raw);
+      const digest = raw.hash || raw.body_hash || raw.tip_hash;
+      if (digest) hashes.push(String(digest));
+    } else if (raw) {
+      hashes.push(String(raw));
+    }
+  }
+  if (live.length) return { ok: false, code: "CCS_LIVE_BODY_SYNC_REFUSED", copies: rows.length };
+  if (rows.length < COLD_COPY_MIN) return { ok: false, code: "CCS_MULTIPLY", min_copies: COLD_COPY_MIN, copies: rows.length };
+  return { ok: true, code: "CCS_OK", copies: rows.length, min_copies: COLD_COPY_MIN, distinct: hashes.length ? new Set(hashes).size : rows.length, cold: true };
+}
+
+export function liveBodySync({ source = "live", target = "cold" } = {}) {
+  return { ok: false, synced: false, source, target, code: "CCS_LIVE_BODY_SYNC_REFUSED", note: "Refuse live body sync. Cold copies stay cold." };
+}
+
+export function eraseTip({ expensive = false } = {}) {
+  return { ok: false, erased: false, expensive: !!expensive, code: "CCS_TIP_ERASE_EXPENSIVE", note: "Tip is expensive to erase. Cheap wipe is refused." };
+}
+
+export function serverPull({ wipe_cold = false, replicas = [] } = {}) {
+  const kept = Array.isArray(replicas) ? replicas.slice() : [];
+  if (wipe_cold) {
+    return { ok: false, wiped: false, replicas: kept, copies: kept.length, code: "CCS_SERVER_PULL_NO_WIPE", note: "Server pull cannot wipe cold replicas." };
+  }
+  return { ok: true, wiped: false, replicas: kept, copies: kept.length, direction: "pull", code: "CCS_OK" };
+}
+
+export function poisonRefuse(digest, poison) {
+  const want = hex64(digest);
+  if (!want) return { ok: false, apply: false, code: "CCS_POISON_HASH_ABSOLUTE" };
+  const marked = new Set((poison || []).map((h) => hex64(String(h))).filter(Boolean));
+  if (marked.has(want)) {
+    return { ok: false, apply: false, interpret: false, hash: want, code: "CCS_POISON_HASH_ABSOLUTE", note: "Hash-absolute poison refuse. Not interpreted." };
+  }
+  return { ok: true, apply: false, interpret: false, hash: want, poison: false, code: "CCS_OK" };
+}
+
+export function creatorGone(creator, replicas) {
+  const kept = Array.isArray(replicas) ? replicas.slice() : [];
+  return { ok: true, creator, gone: true, wiped: false, replicas: kept, copies: kept.length, data_remains: true, code: "CCS_DATA_OUTLIVES_CREATORS", note: "Data outlives creators." };
+}
 
 export const MESH_OPS = Object.freeze([
   "status",
@@ -173,6 +386,9 @@ export function emptyMesh(extra = {}) {
     note: MESH_NOTE,
     door: MESH_PATH,
     qns_cd: QNS_CD,
+    split_the_wires: STW,
+    cold_copy_survival: CCS,
+    hop_default_off: true,
     ...extra,
     spec: QNM_SPEC,
     rollup,
@@ -182,6 +398,9 @@ export function emptyMesh(extra = {}) {
     author: MESH_IDENTITY,
     identity: MESH_IDENTITY,
     qns_cd: QNS_CD,
+    split_the_wires: STW,
+    cold_copy_survival: CCS,
+    hop_default_off: true,
   };
 }
 
@@ -243,9 +462,12 @@ export function parseMeshDoc(body) {
     source: inner.source || "parsed",
     door: inner.door || MESH_PATH,
     note: enabled
-      ? "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer. Suite mesh is on. Live|locked|isolated counts only. No Node Gate. No auto-heal. Not an anonymity network. No public qnsd proxy."
+      ? "QNM-BUILD-1.0. QNS-CD-1.0 photon QNS1 packet transfer. SPLIT THE WIRES STW-1.0. COLD-COPY SURVIVAL CCS-1.0. Suite mesh is on. Live|locked|isolated counts only. No Node Gate. No auto-heal. Not an anonymity network. No public qnsd proxy."
       : MESH_NOTE,
     qns_cd: QNS_CD,
+    split_the_wires: STW,
+    cold_copy_survival: CCS,
+    hop_default_off: true,
   });
 }
 
@@ -290,6 +512,9 @@ export function publicMesh(mesh) {
       note: "AZMail anonymous ring leftovers. Not suite QNM.",
     },
     qns_cd: QNS_CD,
+    split_the_wires: STW,
+    cold_copy_survival: CCS,
+    hop_default_off: true,
     note: m.note || MESH_NOTE,
   };
 }
@@ -301,9 +526,9 @@ export function meshStatusLine(mesh) {
     return "Suite mesh: on · live " + r.live + " · locked " + r.locked + " · isolated " + r.isolated + ". Not an anonymity network.";
   }
   if (m.status === "unavailable") {
-    return "Suite mesh: off (unavailable). QNM-BUILD-1.0. QNS-CD-1.0. Not an anonymity network.";
+    return "Suite mesh: off (unavailable). QNM-BUILD-1.0. QNS-CD-1.0. STW-1.0. CCS-1.0. Not an anonymity network.";
   }
-  return "Suite mesh: off (default). QNM-BUILD-1.0. QNS-CD-1.0. Not an anonymity network.";
+  return "Suite mesh: off (default). QNM-BUILD-1.0. QNS-CD-1.0. STW-1.0. CCS-1.0. Not an anonymity network.";
 }
 
 /** Public Live Nodes count. Never auto-heal a visiting floor. */
@@ -330,6 +555,9 @@ export function meshPointer() {
     origin: RUNTIME + MESH_PATH,
     leftover_product_mesh: [PRODUCT_MESH_ENABLE, PRODUCT_MESH_DISABLE, PRODUCT_MESH_BROADCAST, PRODUCT_MESH_LISTEN],
     qns_cd: QNS_CD,
+    split_the_wires: STW,
+    cold_copy_survival: CCS,
+    hop_default_off: true,
     note: "PROXY to aziel-runtime /v1/mesh/* via AZIEL_RUNTIME. Not a local op. Not AnonBroadcast. Not AZMail's product-local ring (leftover /v1/mesh_enable|mesh_disable|broadcast|listen; FragGate slug=azmail). Not a public qnsd proxy. " + MESH_NOTE,
     anon_broadcast: ANON_BROADCAST,
     anon_broadcast_publish_path: false,

@@ -23,5 +23,7 @@ Human UI is this Worker. Agent / MCP path is FragGate only:
 on this host (`POST /mcp` returns a pointer, including suite QNM
 `mesh_*`). Suite mesh is off by default (`GET /v1/mesh` PROXY).
 Product-local leftover ring: `POST /v1/mesh_disable`.
+SPLIT THE WIRES (STW-1.0) + COLD-COPY SURVIVAL (CCS-1.0) are locked
+mesh law on `src/mesh.js`. Hop default-off stays.
 
 Author: Aziel Eliab. Apache-2.0.

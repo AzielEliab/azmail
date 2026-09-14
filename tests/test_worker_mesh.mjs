@@ -10,22 +10,42 @@ import {
   QNM_SPEC,
   QNS_CD_SPEC,
   QNS_CD,
+  STW_SPEC,
+  CCS_SPEC,
+  STW,
+  CCS,
   MESH_DEFAULT_OFF,
   MESH_ANONYMITY_NETWORK,
   MESH_NODE_GATE,
   MESH_AUTO_HEAL,
+  MESH_HOP_DEFAULT_OFF,
   MESH_OPS,
   MESH_PATH,
   MESH_IDENTITY,
   MESH_NOTE,
   PRODUCT_MESH_DISABLE,
+  DWELL_SEC,
+  SOCKET_TICK,
+  SOCKET_DWELL,
+  admitPayload,
   alignLiveNodes,
+  creatorGone,
+  decideUpdate,
   emptyMesh,
+  encodeTipTick,
+  eraseTip,
+  equivocationEndsPeer,
+  hopEnable,
+  liveBodySync,
   meshOpenApiPaths,
   meshPointer,
   meshStatusLine,
+  multiplyColdCopies,
   parseMeshDoc,
+  poisonRefuse,
   publicMesh,
+  serverPull,
+  socketsAreSplit,
 } from "../workers/download-tracker/src/mesh.js";
 import { classifyV1Path, DEFAULT_RUNTIME_ORIGIN, doorTargetUrl, localOpFromPath } from "../workers/download-tracker/src/door.js";
 import { handleRuntimeApi } from "../workers/download-tracker/src/runtime.js";
@@ -49,6 +69,18 @@ assert.equal(QNS_CD.azinterface, "https://github.com/AzielEliab/azinterface");
 assert.match(QNS_CD.designs.qnm_wp, /docs\/designs\/QNM-WP-1\.0\.md$/);
 assert.match(QNS_CD.note, /QNS-CD-1\.0 photon QNS1 packet transfer/);
 assert.match(MESH_NOTE, /QNS-CD-1\.0/);
+assert.match(MESH_NOTE, /SPLIT THE WIRES STW-1\.0/);
+assert.match(MESH_NOTE, /COLD-COPY SURVIVAL CCS-1\.0/);
+assert.equal(STW_SPEC, "STW-1.0");
+assert.equal(CCS_SPEC, "CCS-1.0");
+assert.equal(STW.title, "SPLIT THE WIRES");
+assert.equal(CCS.title, "COLD-COPY SURVIVAL");
+assert.equal(STW.author, "Aziel Eliab");
+assert.equal(CCS.author, "Aziel Eliab");
+assert.equal(STW.hop_default_off, true);
+assert.equal(CCS.keeps_split_the_wires, true);
+assert.equal(MESH_HOP_DEFAULT_OFF, true);
+assert.equal(DWELL_SEC, 777);
 assert.equal(MESH_DEFAULT_OFF, true);
 assert.equal(MESH_ANONYMITY_NETWORK, false);
 assert.equal(MESH_NODE_GATE, false);
@@ -67,6 +99,9 @@ assert.equal(empty.anonymity_network, false);
 assert.equal(empty.identity, "Aziel Eliab");
 assert.equal(empty.qns_cd.spec, QNS_CD_SPEC);
 assert.equal(empty.qns_cd.public_qnsd_proxy, false);
+assert.equal(empty.split_the_wires.spec, STW_SPEC);
+assert.equal(empty.cold_copy_survival.spec, CCS_SPEC);
+assert.equal(empty.hop_default_off, true);
 
 const qnm = parseMeshDoc({
   spec: "QNM-BUILD-1.0",
@@ -92,6 +127,9 @@ assert.equal(pub.leftover_product_mesh.disable, "/v1/mesh_disable");
 assert.equal(pub.qns_cd.spec, QNS_CD_SPEC);
 assert.equal(pub.qns_cd.public_qnsd_proxy, false);
 assert.equal(pub.qns_cd.softwares_tab, false);
+assert.equal(pub.split_the_wires.spec, STW_SPEC);
+assert.equal(pub.cold_copy_survival.spec, CCS_SPEC);
+assert.equal(pub.hop_default_off, true);
 assert.match(meshStatusLine(pub), /Suite mesh: on · live 2 · locked 1 · isolated 3/);
 assert.match(meshStatusLine(emptyMesh()), /Suite mesh: off \(default\)\. QNM-BUILD-1\.0\. QNS-CD-1\.0/);
 assert.equal(alignLiveNodes({ mesh: { enabled: true, rollup: { live: 4, locked: 1, isolated: 0 } } }), 4);
@@ -106,6 +144,9 @@ assert.equal(pointer.auto_heal, false);
 assert.equal(pointer.anonymity_network, false);
 assert.equal(pointer.qns_cd.spec, QNS_CD_SPEC);
 assert.equal(pointer.qns_cd.public_qnsd_proxy, false);
+assert.equal(pointer.split_the_wires.spec, STW_SPEC);
+assert.equal(pointer.cold_copy_survival.spec, CCS_SPEC);
+assert.equal(pointer.hop_default_off, true);
 assert.match(pointer.note, /Not AZMail's product-local ring/);
 assert.match(pointer.note, /QNS-CD-1\.0/);
 assert.match(pointer.note, /Not a public qnsd proxy/);
@@ -126,6 +167,11 @@ assert.match(html, /id="meshLiveCount"/);
 assert.match(html, /id="meshLine"/);
 assert.match(html, /QNM-BUILD-1\.0/);
 assert.match(html, /QNS-CD-1\.0/);
+assert.match(html, /SPLIT THE WIRES/);
+assert.match(html, /STW-1\.0/);
+assert.match(html, /COLD-COPY SURVIVAL/);
+assert.match(html, /CCS-1\.0/);
+assert.match(html, /hop default-off/);
 assert.match(html, /Live Nodes/);
 assert.match(html, /No Node Gate/);
 assert.match(html, /No auto-heal/);
@@ -234,6 +280,9 @@ try {
   assert.equal(mcp.mesh.rollup, "live|locked|isolated");
   assert.equal(mcp.mesh.qns_cd.spec, "QNS-CD-1.0");
   assert.equal(mcp.mesh.qns_cd.public_qnsd_proxy, false);
+  assert.equal(mcp.mesh.split_the_wires.spec, "STW-1.0");
+  assert.equal(mcp.mesh.cold_copy_survival.spec, "CCS-1.0");
+  assert.equal(mcp.mesh.hop_default_off, true);
   assert.match(mcp.note, /mesh_\*/);
   assert.match(mcp.note, /Product-local leftover ring/);
 
@@ -244,6 +293,8 @@ try {
   assert.equal(health.mesh.identity, "Aziel Eliab");
   assert.equal(health.mesh.qns_cd.spec, "QNS-CD-1.0");
   assert.equal(health.mesh.qns_cd.public_qnsd_proxy, false);
+  assert.equal(health.mesh.split_the_wires.spec, "STW-1.0");
+  assert.equal(health.mesh.cold_copy_survival.spec, "CCS-1.0");
   assert.ok(health.door_proxy.includes("/v1/mesh"));
   assert.ok(health.leftover_product_mesh.includes("/v1/mesh_disable"));
   assert.ok(!health.door_proxy.includes("/v1/qnsd"));
@@ -251,8 +302,32 @@ try {
   const openapiPaths = meshOpenApiPaths();
   assert.ok(openapiPaths["/v1/mesh"].get);
   assert.ok(openapiPaths["/v1/mesh/broadcast"].post);
+
+  const tip = "ab".repeat(32);
+  const tipB = "cd".repeat(32);
+  const tick = encodeTipTick("live", tip);
+  assert.equal(tick.ok, true);
+  assert.equal(tick.bytes, 65);
+  assert.equal(tick.payload, null);
+  assert.equal(encodeTipTick("live", tip, "body").code, "STW_TIP_ONLY");
+  assert.equal(admitPayload({ direction: "push" }).code, "STW_PULL_ONLY");
+  assert.equal(admitPayload({ direction: "pull", hop_enabled: true }).code, "STW_HOP_DEFAULT_OFF");
+  assert.equal(decideUpdate({ kind: "timer" }).apply, false);
+  assert.equal(decideUpdate({ prev: tip, lockset: "LOCKSET-1" }).dwell_sec, 777);
+  assert.equal(decideUpdate({ kind: "clock_desync" }).yes, false);
+  assert.equal(decideUpdate({ kind: "ambiguous" }).isolate, true);
+  assert.equal(equivocationEndsPeer("p", [tip, tipB]).ended, true);
+  assert.equal(hopEnable().enabled, false);
+  assert.equal(socketsAreSplit(SOCKET_TICK, SOCKET_DWELL).ok, true);
+  assert.equal(multiplyColdCopies([{ hash: tip, cold: true }]).code, "CCS_MULTIPLY");
+  assert.equal(multiplyColdCopies([{ hash: tip, cold: true }, { hash: tipB, cold: true }]).ok, true);
+  assert.equal(liveBodySync().synced, false);
+  assert.equal(eraseTip().erased, false);
+  assert.equal(serverPull({ wipe_cold: true, replicas: [{}, {}] }).wiped, false);
+  assert.equal(poisonRefuse(tip, [tip]).interpret, false);
+  assert.equal(creatorGone("anon-dead", [{}, {}]).data_remains, true);
 } finally {
   globalThis.fetch = previousFetch;
 }
 
-console.log("worker mesh Live Nodes / QNM / QNS-CD-1.0 smoke ok");
+console.log("worker mesh Live Nodes / QNM / QNS-CD-1.0 / STW-1.0 / CCS-1.0 smoke ok");

@@ -52,6 +52,8 @@ binding. Local ops are `/v1/{op}` only.
   [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair
   custody is [AZInterface](https://github.com/AzielEliab/azinterface).
   No public qnsd proxy on this Worker.
+  **SPLIT THE WIRES (STW-1.0)** + **COLD-COPY SURVIVAL (CCS-1.0)**
+  are locked product-local mesh law (hop default-off stays).
 - AZMail product-local leftover ring: `POST /v1/mesh_disable` (easy
   off-switch). Agents: FragGate `slug=azmail`
   `op=mesh_enable|mesh_disable|broadcast|listen`. Broadcasts refuse

@@ -9,7 +9,19 @@ from typing import Callable
 
 from azmail import LIMITATION, LOOPBACK, SPEC_STRING, __version__
 from azmail.airlock import classify, process
-from azmail.mesh import MeshClient, match_keywords, refuse_reason
+from azmail.mesh import (
+    CCS_SPEC,
+    DWELL_SEC,
+    MESH_HOP_DEFAULT_OFF,
+    STW_SPEC,
+    MeshClient,
+    decide_update,
+    hop_enable,
+    match_keywords,
+    multiply_cold_copies,
+    refuse_reason,
+    server_pull,
+)
 from azmail.scrub import scrub_html
 from azmail.ui import make_server
 
@@ -157,6 +169,21 @@ def _check_keyword_alerts() -> Check:
     return _ok("keyword alerts", "lighthouse")
 
 
+def _check_mesh_law() -> Check:
+    if STW_SPEC != "STW-1.0" or CCS_SPEC != "CCS-1.0" or DWELL_SEC != 777:
+        return _fail("mesh law", f"{STW_SPEC} {CCS_SPEC} {DWELL_SEC}")
+    if not MESH_HOP_DEFAULT_OFF or hop_enable().get("enabled"):
+        return _fail("mesh hop", "hop must stay default-off")
+    if decide_update({"kind": "timer"}).get("apply"):
+        return _fail("stw timer", "timer must not apply")
+    if multiply_cold_copies([{"hash": "ab" * 32, "cold": True}]).get("ok"):
+        return _fail("ccs multiply", "one copy is not survival")
+    wipe = server_pull(wipe_cold=True, replicas=[{}, {}])
+    if wipe.get("wiped"):
+        return _fail("ccs pull", str(wipe))
+    return _ok("mesh law", "STW-1.0 + CCS-1.0 hop off")
+
+
 def _check_mesh_refuse() -> Check:
     if not refuse_reason("password: hunter2"):
         return _fail("mesh refuse", "missed credential")
@@ -215,6 +242,7 @@ CHECKS: tuple[Callable[[], Check], ...] = (
     _check_mesh_off,
     _check_keyword_alerts,
     _check_mesh_refuse,
+    _check_mesh_law,
     _check_loopback,
     _check_no_mta,
     _check_independence,

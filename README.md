@@ -27,7 +27,10 @@ default OFF (live|locked|isolated). Product-local leftover ring is
 `POST /v1/mesh_disable`, not `/v1/mesh/*`.
 **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh
 cross-map on `workers/download-tracker/src/mesh.js` — not a
-Softwares-tab product and not a public `qnsd` proxy. Local `qnsd` is
+Softwares-tab product and not a public `qnsd` proxy.
+**SPLIT THE WIRES (STW-1.0)** and **COLD-COPY SURVIVAL (CCS-1.0)** are
+locked product-local mesh law in `azmail/mesh.py` and that Worker file.
+Mesh hop default-off stays. Local `qnsd` is
 coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime
 cites + catalog field live in
 [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair
@@ -161,7 +164,8 @@ Live mesh for agents is FragGate only
 (`POST /v1/fraggate/call` `slug=azmail`), not this process and not a
 mail MCP on the product Worker. Suite Live Nodes advertise the
 **QNS-CD-1.0** cross-map (`qns_cd` on mesh status / health / `/mcp`
-pointer). See [docs/mesh.md](docs/mesh.md).
+pointer). **STW-1.0** + **CCS-1.0** (`split_the_wires`,
+`cold_copy_survival`). See [docs/mesh.md](docs/mesh.md).
 
 ## CLI
 

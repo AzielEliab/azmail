@@ -61,7 +61,7 @@ This Worker \`/v1/fraggate/*\` (list / describe / call), \`/v1/runtime/*\`, and 
 **Human UI stays on this Worker / \`azmail ui\`.** AI path is FragGate.
 
 **Two meshes, kept separate:**
-- Suite QNM (QNM-BUILD-1.0): \`GET /v1/mesh\` PROXY. Default OFF. live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh cross-map only — not a Softwares-tab product. Local qnsd lives in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. Pair custody is AZInterface. No public qnsd proxy.
+- Suite QNM (QNM-BUILD-1.0): \`GET /v1/mesh\` PROXY. Default OFF. live|locked|isolated. No Node Gate. No auto-heal. Not anonymity. Catalog MCP \`mesh_*\` + FragGate \`slug=mesh\`. **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh cross-map only — not a Softwares-tab product. Local qnsd lives in https://github.com/AzielEliab/qnm-node. Runtime cites + catalog field live in https://github.com/AzielEliab/aziel-runtime. Pair custody is AZInterface. No public qnsd proxy. **SPLIT THE WIRES (STW-1.0)** + **COLD-COPY SURVIVAL (CCS-1.0)** locked product-local mesh law. Hop default-off stays.
 - AZMail product-local leftover ring: \`POST /v1/mesh_disable\` (easy off-switch). Agents: FragGate \`slug=azmail\` \`op=mesh_enable|mesh_disable|broadcast|listen\`.
 
 Suite mesh is **off by default**. Product-local \`mesh_disable\` is the easy off-switch for the anonymous ring.
