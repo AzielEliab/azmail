@@ -33,6 +33,40 @@ Pair custody is [AZInterface](https://github.com/AzielEliab/azinterface).
 This Worker does **not** implement qnsd and does **not** expose a public
 qnsd proxy. Mesh stays default OFF.
 
+## SPLIT THE WIRES (STW-1.0)
+
+Locked product-local mesh law. Author: **Aziel Eliab** only. Mesh hop
+**default-off stays**. Encoded in `azmail.mesh` and
+`workers/download-tracker/src/mesh.js` as `STW_LAW` / `STW`.
+
+| Clause | Law |
+|--------|-----|
+| Tip tick | Tip-only, 0.5–1s. Presence + tip hash, fixed size. No payload on the tick wire. |
+| Payload plane | Pull-only. |
+| Update | Proof, not a timer. Cite `prev` + lockset, fail-closed. 777s dwell after a valid cite. Clock desync ≠ yes. Ambiguous = isolate. |
+| Equivocation | Ends the peer. |
+| Emit last | Locally only. |
+| Phoenix | Local only (not public hostname restore). |
+| Partition | No auto-splice. |
+| Heartbeat loss | ≠ poison ≠ apply last packet. |
+| Sockets | 1s tick socket ≠ 777s dwell socket. |
+
+Leftover `mesh_enable` is the product-local ring helper. It is **not**
+mesh hop. `hop_enable` stays refused.
+
+## COLD-COPY SURVIVAL (CCS-1.0)
+
+Keeps SPLIT THE WIRES. Encoded as `CCS_LAW` / `CCS`.
+
+| Clause | Law |
+|--------|-----|
+| Multiply | Cold copies are multiplied (minimum 2). A single copy is not survival. |
+| Live body sync | Refused. Cold stays cold. |
+| Tip erase | Expensive. Cheap wipe is refused. The tip is not cheap to erase. |
+| Server pull | Cannot wipe cold replicas. Pull is not a remote delete. |
+| Poison | Hash-absolute refuse. Exact digest only. Not interpreted. |
+| Creators | Data outlives creators. Dropping a creator does not wipe replicas. |
+
 ## Off by default / easy off-switch
 
 | Action | Local CLI | Worker stub | FragGate (when live) |

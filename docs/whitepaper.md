@@ -106,7 +106,9 @@ limits, refuse doxxing and credential harvest. Live execution is
 FragGate `slug=azmail` (sibling runtime PR). Worker leftover stubs are
 `/v1/mesh_disable` etc. Suite QNM (`GET /v1/mesh` PROXY, catalog
 `mesh_*`, FragGate `slug=mesh`) is a separate rollup — default OFF,
-live|locked|isolated, no Node Gate, no auto-heal, not anonymity. See
+live|locked|isolated, no Node Gate, no auto-heal, not anonymity.
+SPLIT THE WIRES (STW-1.0) and COLD-COPY SURVIVAL (CCS-1.0) are locked
+product-local mesh law; hop default-off stays. See
 [mesh.md](mesh.md).
 
 ## Independence
