@@ -10,6 +10,15 @@ from typing import Any
 
 from azmail import DEFAULT_PORT, LIMITATION, LOOPBACK, SPEC_STRING, __version__
 from azmail.airlock import classify, process
+from azmail.contacts import (
+    ContactError,
+    add_contact,
+    apply_sender,
+    edit_contact,
+    list_contacts,
+    remove_contact,
+    resolve_recipient,
+)
 from azmail.doctor import run_doctor
 from azmail.mesh import (
     match_keywords,
@@ -30,6 +39,9 @@ WELCOME = """AZMail checks a message before it lands in your inbox, and holds an
 
 Open the app:
   azmail ui
+
+Save a nickname:
+  azmail contact add --nickname Sam --address sam@example.com
 
 Check this install:
   azmail doctor
@@ -54,6 +66,7 @@ Common commands:
   receive    Hold a message in the airlock
   list       Show inbox, airlock, quarantine, or drafts
   release    Move a held message into the inbox
+  contact    Save a nickname for someone on this computer
 
 Advanced commands:
   scrub      Strip tracking and scripts from HTML
@@ -74,6 +87,7 @@ Examples:
   azmail classify --from 'a@b.com' --subject hello --body hi
   azmail receive --from 'a@b.com' --subject hello --body hi
   azmail list airlock
+  azmail contact add --nickname Sam --address sam@example.com
 """
 
 FLAG_WORDS = {
@@ -204,7 +218,24 @@ def explain_error(message: str, argv: list[str]) -> tuple[str, str]:
         if start >= 0:
             rest = message[start + len("invalid choice: '") :]
             choice = rest.split("'", 1)[0]
-    known = {"list", "mesh", "keywords", "ui", "doctor", "classify", "receive", "release", "scrub", "process", "import", "export", "verify", "compose", "version"}
+    known = {
+        "list",
+        "mesh",
+        "keywords",
+        "ui",
+        "doctor",
+        "classify",
+        "receive",
+        "release",
+        "scrub",
+        "process",
+        "import",
+        "export",
+        "verify",
+        "compose",
+        "version",
+        "contact",
+    }
     if "invalid choice" in message and cmd not in known:
         name = choice or cmd or "that"
         return (f'Unknown command "{name}".', "azmail ui   or   azmail --help")
@@ -236,6 +267,8 @@ def explain_error(message: str, argv: list[str]) -> tuple[str, str]:
         return ("Say what the ring should do.", "azmail mesh status")
     if cmd == "keywords" and "required" in message:
         return ("Say list, set, or match.", "azmail keywords list")
+    if cmd == "contact" and ("required" in message or "invalid choice" in message):
+        return ("Say list, add, edit, or remove.", "azmail contact list")
     if "expected one argument" in message and "--mailbox" in message:
         return ("Add a path after --mailbox.", "azmail --mailbox ~/.azmail/mailbox.json ui")
     if "invalid int value" in message:
@@ -315,7 +348,9 @@ def format_envelope(env: dict[str, Any]) -> str:
         place = "Held in the airlock."
         nxt = f"azmail release {env.get('id')}"
     lines = [place, f"Id: {env.get('id')}", BADGE_LINE.get(cls.get("badge"), cls.get("badge") or "")]
-    if msg.get("from"):
+    if msg.get("from_display") and msg.get("from"):
+        lines.append(f"From: {msg['from_display']} — {msg['from']}")
+    elif msg.get("from"):
         lines.append(f"From: {msg['from']}")
     if msg.get("subject"):
         lines.append(f"Subject: {msg['subject']}")
@@ -491,6 +526,32 @@ def cmd_ui(ns: argparse.Namespace) -> int:
     return serve(host=LOOPBACK, port=int(ns.port), mailbox=_box_path(ns))
 
 
+def _with_contacts(ns: argparse.Namespace, payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    box = load(_box_path(ns))
+    payload = dict(payload)
+    if payload.get("to"):
+        target, nick = resolve_recipient(list_contacts(box), str(payload.get("to") or ""))
+        payload["to"] = target
+        if nick:
+            payload["to_nickname"] = nick
+    resolved, note = apply_sender(box, payload)
+    return resolved, note
+
+
+def _resolution_line(note: dict[str, str]) -> str:
+    if note.get("nickname") and note.get("address"):
+        return f"Nickname: {note['nickname']} — {note['address']}"
+    if note.get("nickname") and note.get("handle"):
+        return f"Nickname: {note['nickname']} — {note['handle']}"
+    if note.get("unmatched"):
+        token = note["unmatched"]
+        return (
+            f'No contact uses "{token}".\n'
+            f"Try: azmail contact add --nickname {token} --address name@example.com"
+        )
+    return ""
+
+
 def cmd_classify(ns: argparse.Namespace) -> int:
     if ns.file:
         payload = _load_json_file(ns.file)
@@ -498,18 +559,28 @@ def cmd_classify(ns: argparse.Namespace) -> int:
             raise CliStop("That file is not a message object.", "Pass one JSON object with a from field.")
     else:
         payload = _message_from_flags(ns)
+    payload, note = _with_contacts(ns, payload)
     result = classify(payload).as_dict()
-    _emit(ns, result, format_classification(result))
+    human = format_classification(result)
+    extra = _resolution_line(note)
+    if extra:
+        human = extra + "\n" + human
+    _emit(ns, result, human)
     return 0
 
 
 def cmd_receive(ns: argparse.Namespace) -> int:
     path = _box_path(ns)
     box = load(path)
-    env = ingest(box, _message_from_flags(ns), confirmed=bool(ns.confirm))
+    payload, note = _with_contacts(ns, _message_from_flags(ns))
+    env = ingest(box, payload, confirmed=bool(ns.confirm))
     save(path, box)
     row = env.as_dict()
-    _emit(ns, row, format_envelope(row))
+    human = format_envelope(row)
+    extra = _resolution_line(note)
+    if extra:
+        human = extra + "\n" + human
+    _emit(ns, row, human)
     return 0
 
 
@@ -673,26 +744,109 @@ def cmd_keywords(ns: argparse.Namespace) -> int:
     return _emit_error(ns, "Say list, set, or match.", "azmail keywords list")
 
 
+def _contact_line(contact: dict[str, Any]) -> str:
+    nick = contact.get("nickname") or "(no nickname)"
+    target = contact.get("address") or contact.get("handle") or ""
+    name = contact.get("name") or ""
+    who = f"{nick} ({name})" if name and name.casefold() != str(nick).casefold() else str(nick)
+    return f"  {who} — {target}" if target else f"  {who}"
+
+
+def format_contacts(rows: list[dict[str, Any]], path: Path) -> str:
+    if not rows:
+        return (
+            "No contacts yet.\n"
+            "Try: azmail contact add --nickname Sam --address sam@example.com\n"
+            f"File: {path}"
+        )
+    noun = "contact" if len(rows) == 1 else "contacts"
+    lines = [f"Contacts on this computer ({len(rows)} {noun})"]
+    lines.extend(_contact_line(row) for row in rows)
+    lines.append(f"File: {path}")
+    return "\n".join(lines)
+
+
+def cmd_contact(ns: argparse.Namespace) -> int:
+    path = _box_path(ns)
+    box = load(path)
+    action = ns.action
+    try:
+        if action == "list":
+            rows = list_contacts(box)
+            _emit(ns, {"ok": True, "contacts": rows}, format_contacts(rows, path))
+            return 0
+        if action == "add":
+            contact = add_contact(
+                box,
+                nickname=ns.nickname or "",
+                address=ns.address or "",
+                handle=ns.handle or "",
+                name=ns.name or "",
+            )
+            save(path, box)
+            _emit(
+                ns,
+                {"ok": True, "contact": contact},
+                f"Saved {contact['nickname']}.\n{_contact_line(contact).strip()}\nFile: {path}",
+            )
+            return 0
+        if action == "edit":
+            contact = edit_contact(
+                box,
+                contact_id=ns.id or "",
+                nickname=ns.nickname or "",
+                address=ns.address,
+                handle=ns.handle,
+                name=ns.name,
+                rename=ns.rename,
+            )
+            save(path, box)
+            _emit(
+                ns,
+                {"ok": True, "contact": contact},
+                f"Updated {contact['nickname']}.\n{_contact_line(contact).strip()}\nFile: {path}",
+            )
+            return 0
+        if action == "remove":
+            contact = remove_contact(box, contact_id=ns.id or "", nickname=ns.nickname or "")
+            save(path, box)
+            _emit(
+                ns,
+                {"ok": True, "removed": contact},
+                f"Removed {contact['nickname']}.\nFile: {path}",
+            )
+            return 0
+    except ContactError as exc:
+        return _emit_error(ns, exc.text, exc.hint, body={"ok": False, "error": exc.text, "hint": exc.hint})
+    return _emit_error(ns, "Say list, add, edit, or remove.", "azmail contact list")
+
+
 def cmd_compose(ns: argparse.Namespace) -> int:
     path = _box_path(ns)
     box = load(path) if path.exists() else default_mailbox()
+    target, nick = resolve_recipient(list_contacts(box), ns.to)
     draft = {
         "from": ns.sender or "local@azmail.demo",
-        "to": ns.to,
+        "to": target,
         "subject": ns.subject,
         "body_text": ns.body,
         "demo": True,
         "note": "v0.1 compose is local only. It does not send internet email.",
     }
+    if nick:
+        draft["to_nickname"] = nick
     box.setdefault("drafts", []).append(draft)
     save(path, box)
+    who = f"{nick} — {target}" if nick and nick.casefold() != target.casefold() else target
     human = (
         "Draft saved on this computer.\n"
-        f"To: {draft['to']}\n"
+        f"To: {who}\n"
         f"Subject: {draft['subject'] or '(no subject)'}\n"
         "It stays in Drafts.\n"
         "Next: azmail list drafts"
     )
+    if not nick and "@" not in (ns.to or ""):
+        human += f'\nNo contact uses "{ns.to}". It was saved as typed.'
     _emit(ns, draft, human)
     return 0
 
@@ -774,6 +928,15 @@ def build_parser() -> FriendlyParser:
     compose.add_argument("--to", required=True)
     compose.add_argument("--subject", default="")
     compose.add_argument("--body", default="")
+
+    contact = add("contact", "Save a nickname for someone on this computer")
+    contact.add_argument("action", choices=("list", "add", "edit", "remove"))
+    contact.add_argument("--nickname", default=None)
+    contact.add_argument("--address", default=None)
+    contact.add_argument("--handle", default=None)
+    contact.add_argument("--name", default=None)
+    contact.add_argument("--id", default=None)
+    contact.add_argument("--rename", default=None)
     return parser
 
 
@@ -803,6 +966,8 @@ def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
     as_json = "--json" in raw
     args = [item for item in raw if item != "--json"]
+    if args and args[0] == "contacts":
+        args[0] = "contact"
     kind = _argv_kind(args)
     if kind == "bare":
         if as_json:
@@ -846,6 +1011,7 @@ def main(argv: list[str] | None = None) -> int:
         "mesh": cmd_mesh,
         "keywords": cmd_keywords,
         "compose": cmd_compose,
+        "contact": cmd_contact,
     }
     try:
         return handlers[ns.cmd](ns)

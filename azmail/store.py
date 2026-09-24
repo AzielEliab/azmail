@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from azmail.airlock import Envelope, process
+from azmail.contacts import normalize_contacts
 from azmail.mesh import MeshClient, anonymous_handle
 
 SCHEMA = "azmail-mailbox-v0"
@@ -20,6 +21,7 @@ def default_mailbox() -> dict[str, Any]:
         "quarantine": [],
         "drafts": [],
         "contacts": {},
+        "contact_book": [],
         "history": [],
         "mesh": {
             "enabled": False,
@@ -36,12 +38,13 @@ def load(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     base = default_mailbox()
     base.update(data)
-    return base
+    return normalize_contacts(base)
 
 
 def save(path: Path, box: dict[str, Any]) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    normalize_contacts(box)
     path.write_text(json.dumps(box, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 

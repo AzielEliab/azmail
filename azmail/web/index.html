@@ -99,15 +99,16 @@
       padding: 0.55rem 0.85rem;
       min-height: 44px;
     }
-    .tabs { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
-    .tabs button { flex: 1 1 0; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .tabs button { flex: 1 1 5.5rem; }
+    .card, .stage { min-width: 0; }
     .tabs button[aria-selected="true"] {
       border-color: var(--gold);
       color: var(--ink);
       font-weight: 700;
     }
     .msg { margin-bottom: 0.6rem; }
-    .msg h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+    .msg h3 { margin: 0 0 0.2rem; font-size: 1rem; overflow-wrap: anywhere; }
     .meta { color: var(--muted); font-size: 0.92rem; }
     .badge {
       display: inline-block;
@@ -152,7 +153,7 @@
     <div class="stage">
       <form class="card" id="check-form">
         <label for="from">From</label>
-        <input id="from" name="from" autocomplete="off" placeholder="Name &lt;person@example.com&gt;">
+        <input id="from" name="from" autocomplete="off" placeholder="Nickname or name@example.com">
         <label for="subject">Subject</label>
         <input id="subject" name="subject" autocomplete="off">
         <label for="body">Message</label>
@@ -169,6 +170,7 @@
           <button type="button" class="ghost" role="tab" id="tab-inbox" data-view="inbox" aria-selected="true">Inbox</button>
           <button type="button" class="ghost" role="tab" id="tab-airlock" data-view="airlock" aria-selected="false">Held</button>
           <button type="button" class="ghost" role="tab" id="tab-quarantine" data-view="quarantine" aria-selected="false">Quarantine</button>
+          <button type="button" class="ghost" role="tab" id="tab-contacts" data-view="contacts" aria-selected="false">Contacts</button>
         </div>
         <h2 id="list-title">Inbox</h2>
         <div id="list"></div>
@@ -192,7 +194,7 @@
           <h2>Draft</h2>
           <p class="hint">Saved on this computer.</p>
           <label for="c-to">To</label>
-          <input id="c-to" autocomplete="off">
+          <input id="c-to" autocomplete="off" placeholder="Nickname or address">
           <label for="c-subject">Subject</label>
           <input id="c-subject" autocomplete="off">
           <label for="c-body">Message</label>
@@ -257,13 +259,18 @@
       source_unverified: "Sender authentication was not a pass",
       html_scrubbed: "Something was removed from the HTML",
     };
-    const TITLES = { inbox: "Inbox", airlock: "Held", quarantine: "Quarantine" };
+    const TITLES = { inbox: "Inbox", airlock: "Held", quarantine: "Quarantine", contacts: "Contacts" };
     const EMPTY = {
       inbox: "Nothing in your inbox yet. Check a message to start.",
       airlock: "Nothing is held.",
       quarantine: "Nothing is set aside.",
     };
-    const state = { view: "inbox", box: { inbox: [], airlock: [], quarantine: [], drafts: [], mesh: {} } };
+    const state = {
+      view: location.hash === "#contacts" ? "contacts" : "inbox",
+      box: { inbox: [], airlock: [], quarantine: [], drafts: [], mesh: {}, contact_book: [] },
+      editing: "",
+      contactNote: "",
+    };
 
     function esc(value) {
       return String(value || "").replace(/[&<>"']/g, (ch) => ({
@@ -299,6 +306,9 @@
     function plainResult(data, preview) {
       const cls = data.classification || data;
       const lines = [];
+      const resolved = data.resolved || {};
+      if (resolved.nickname && resolved.address) lines.push(resolved.nickname + " — " + resolved.address);
+      else if (resolved.nickname && resolved.handle) lines.push(resolved.nickname + " — " + resolved.handle);
       if (preview) lines.push("Preview only. Nothing was saved.");
       else if (data.released) lines.push("In your inbox.");
       else if (cls.verdict === "quarantine") lines.push("Set aside in quarantine.");
@@ -309,6 +319,9 @@
       if (notes) lines.push(notes);
       if (!preview && data.id && !data.released && cls.verdict !== "quarantine") {
         lines.push("Release it from Held when you are ready.");
+      }
+      if (resolved.unmatched) {
+        lines.push('No contact uses "' + resolved.unmatched + '". Add them under Contacts.');
       }
       return lines.filter(Boolean).join("\n");
     }
@@ -347,8 +360,88 @@
       return out.note || "Done.";
     }
 
+    function contactTarget(contact) {
+      return contact.address || contact.handle || "";
+    }
+
+    function renderContacts() {
+      document.getElementById("list-title").textContent = "Contacts";
+      document.querySelectorAll("[data-view]").forEach((btn) => {
+        btn.setAttribute("aria-selected", btn.dataset.view === "contacts" ? "true" : "false");
+      });
+      const rows = (state.box && state.box.contact_book) || [];
+      const cards = rows.map((contact) => {
+        const target = contactTarget(contact);
+        const name = contact.name && contact.name.toLowerCase() !== String(contact.nickname || "").toLowerCase()
+          ? " (" + contact.name + ")"
+          : "";
+        if (state.editing === contact.id) {
+          return `<article class="msg" data-contact="${esc(contact.id)}">
+            <label for="edit-nick">Nickname</label>
+            <input id="edit-nick" value="${esc(contact.nickname)}">
+            <label for="edit-address">Address</label>
+            <input id="edit-address" value="${esc(contact.address)}">
+            <label for="edit-handle">Handle</label>
+            <input id="edit-handle" value="${esc(contact.handle)}">
+            <div class="row">
+              <button class="ghost" type="button" data-save-contact="${esc(contact.id)}">Save</button>
+              <button class="ghost" type="button" data-cancel-contact="1">Cancel</button>
+            </div>
+          </article>`;
+        }
+        return `<article class="msg">
+          <h3>${esc(contact.nickname || "(no nickname)")}${esc(name)}</h3>
+          <p class="meta">${esc(target)}</p>
+          <div class="row">
+            <button class="ghost" type="button" data-edit-contact="${esc(contact.id)}">Edit</button>
+            <button class="ghost" type="button" data-remove-contact="${esc(contact.id)}">Remove</button>
+          </div>
+        </article>`;
+      }).join("");
+      const empty = rows.length ? "" : `<p class="empty">No contacts yet. Add a nickname to use when you check or write.</p>`;
+      document.getElementById("list").innerHTML = `
+        <form id="add-contact">
+          <label for="nick">Nickname</label>
+          <input id="nick" autocomplete="off">
+          <label for="addr">Address</label>
+          <input id="addr" autocomplete="off" placeholder="name@example.com">
+          <label for="handle">Handle</label>
+          <input id="handle" autocomplete="off">
+          <div class="row"><button class="ghost" type="submit">Add contact</button></div>
+        </form>
+        <p class="status" id="contact-note" role="status">${esc(state.contactNote)}</p>
+        ${empty}
+        ${cards}`;
+      document.getElementById("add-contact").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const nickname = document.getElementById("nick").value.trim();
+        const address = document.getElementById("addr").value.trim();
+        const handle = document.getElementById("handle").value.trim();
+        if (!nickname) {
+          state.contactNote = "Add a nickname, then save the contact.";
+          renderContacts();
+          return;
+        }
+        if (!address && !handle) {
+          state.contactNote = "Add an address or a handle so the nickname can be used.";
+          renderContacts();
+          return;
+        }
+        const out = await api("/api/contacts", { action: "add", nickname, address, handle });
+        state.contactNote = out.ok
+          ? "Saved " + (out.contact.nickname || nickname) + "."
+          : (out.error || "Could not save that contact.") + (out.hint ? " Try: " + out.hint : "");
+        state.editing = "";
+        await refresh();
+      });
+    }
+
     function renderList() {
       const view = state.view;
+      if (view === "contacts") {
+        renderContacts();
+        return;
+      }
       document.getElementById("list-title").textContent = TITLES[view];
       document.querySelectorAll("[data-view]").forEach((btn) => {
         btn.setAttribute("aria-selected", btn.dataset.view === view ? "true" : "false");
@@ -369,7 +462,7 @@
           : "";
         return `<article class="msg">
           <h3>${badge ? `<span class="badge ${esc(badge)}">${esc(label)}</span> ` : ""}${esc(message.subject || "(no subject)")}</h3>
-          <p class="meta">${esc(message.from || "")}</p>
+          <p class="meta">${esc(message.from_display ? message.from_display + " — " + (message.from || "") : (message.from || ""))}</p>
           <p>${esc((message.body_text || "").slice(0, 180))}</p>
           ${release}
         </article>`;
@@ -410,11 +503,48 @@
       const btn = event.target.closest("[data-view]");
       if (!btn) return;
       state.view = btn.dataset.view;
+      if (state.view === "contacts") history.replaceState(null, "", "#contacts");
+      else if (location.hash === "#contacts") history.replaceState(null, "", location.pathname + location.search);
       renderList();
     });
 
     document.getElementById("list").addEventListener("click", async (event) => {
-      const id = event.target && event.target.dataset && event.target.dataset.release;
+      const dataset = (event.target && event.target.dataset) || {};
+      if (dataset.editContact) {
+        state.editing = dataset.editContact;
+        renderContacts();
+        return;
+      }
+      if (dataset.cancelContact) {
+        state.editing = "";
+        renderContacts();
+        return;
+      }
+      if (dataset.saveContact) {
+        const out = await api("/api/contacts", {
+          action: "edit",
+          id: dataset.saveContact,
+          nickname: document.getElementById("edit-nick").value,
+          address: document.getElementById("edit-address").value,
+          handle: document.getElementById("edit-handle").value,
+        });
+        state.contactNote = out.ok
+          ? "Updated " + (out.contact.nickname || "the contact") + "."
+          : (out.error || "Could not update that contact.");
+        state.editing = out.ok ? "" : state.editing;
+        await refresh();
+        return;
+      }
+      if (dataset.removeContact) {
+        const out = await api("/api/contacts", { action: "remove", id: dataset.removeContact });
+        state.contactNote = out.ok
+          ? "Removed " + ((out.removed && out.removed.nickname) || "the contact") + "."
+          : (out.error || "Could not remove that contact.");
+        state.editing = "";
+        await refresh();
+        return;
+      }
+      const id = dataset.release;
       if (!id) return;
       const out = await api("/api/release", { id });
       document.getElementById("result").textContent = out.ok
@@ -488,7 +618,9 @@
         subject: document.getElementById("c-subject").value,
         body: document.getElementById("c-body").value,
       });
-      slot.textContent = "Draft saved on this computer.\nTo: " + (out.to || to);
+      let line = "Draft saved on this computer.\nTo: " + (out.to_nickname && out.to !== out.to_nickname ? out.to_nickname + " — " + (out.to || "") : (out.to || to));
+      if (!out.to_nickname && to.indexOf("@") === -1) line += "\nNo contact uses that nickname. The draft kept what you typed.";
+      slot.textContent = line;
       await refresh();
     });
 

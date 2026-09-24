@@ -21,6 +21,8 @@ def test_page_meets_the_human_layout():
     assert ">Advanced</summary>" in text
     assert "Check this message" in text
     assert "Aziel Eliab" in text
+    assert 'data-view="contacts"' in text
+    assert text.index('data-view="contacts"') < text.index('id="advanced"')
     assert "THIS IS NOT" not in text
     assert "Not an MTA" not in text
 

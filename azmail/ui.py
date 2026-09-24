@@ -11,6 +11,15 @@ from urllib.parse import urlparse
 
 from azmail import DEFAULT_PORT, LIMITATION, LOOPBACK, SIGIL_URL, SPEC_STRING, __version__
 from azmail.airlock import classify
+from azmail.contacts import (
+    ContactError,
+    add_contact,
+    apply_sender,
+    edit_contact,
+    list_contacts,
+    remove_contact,
+    resolve_recipient,
+)
 from azmail.mesh import MeshClient, match_keywords
 from azmail.scrub import scrub_html
 from azmail.store import confirm_release, ingest, load, mesh_from_box, mesh_into_box, save
@@ -77,6 +86,9 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
             if path == "/api/health":
                 self._json(_health())
                 return
+            if path == "/api/contacts":
+                self._json({"ok": True, "contacts": list_contacts(box)})
+                return
             if path == "/api/doctor":
                 from azmail.doctor import run_doctor
                 import io
@@ -98,14 +110,75 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
             body = self._read_json()
             box = load(box_path)
             if path == "/api/receive":
-                env = ingest(box, body, confirmed=bool(body.get("confirmed")))
+                payload, note = apply_sender(box, body)
+                if payload.get("to"):
+                    target, nick = resolve_recipient(list_contacts(box), str(payload.get("to") or ""))
+                    payload["to"] = target
+                    if nick:
+                        payload["to_nickname"] = nick
+                env = ingest(box, payload, confirmed=bool(body.get("confirmed")))
                 save(box_path, box)
-                self._json(env.as_dict())
+                out = env.as_dict()
+                if note:
+                    out["resolved"] = note
+                self._json(out)
                 return
             if path in {"/api/classify", "/api/airlock_classify"}:
-                out = classify(body).as_dict()
+                payload, note = apply_sender(box, body)
+                out = classify(payload).as_dict()
                 out["op"] = "airlock_classify"
+                if note:
+                    out["resolved"] = note
                 self._json(out)
+                return
+            if path == "/api/contacts":
+                action = str(body.get("action") or "list")
+                try:
+                    if action == "list":
+                        self._json({"ok": True, "contacts": list_contacts(box)})
+                        return
+                    if action == "add":
+                        contact = add_contact(
+                            box,
+                            nickname=str(body.get("nickname") or ""),
+                            address=str(body.get("address") or ""),
+                            handle=str(body.get("handle") or ""),
+                            name=str(body.get("name") or ""),
+                        )
+                    elif action == "edit":
+                        contact = edit_contact(
+                            box,
+                            contact_id=str(body.get("id") or ""),
+                            nickname=str(body.get("nickname") or ""),
+                            address=body.get("address") if "address" in body else None,
+                            handle=body.get("handle") if "handle" in body else None,
+                            name=body.get("name") if "name" in body else None,
+                            rename=body.get("rename") if "rename" in body else None,
+                        )
+                    elif action == "remove":
+                        removed = remove_contact(
+                            box,
+                            contact_id=str(body.get("id") or ""),
+                            nickname=str(body.get("nickname") or ""),
+                        )
+                        save(box_path, box)
+                        self._json({"ok": True, "removed": removed})
+                        return
+                    else:
+                        self._json(
+                            {
+                                "ok": False,
+                                "error": "Say list, add, edit, or remove.",
+                                "hint": "azmail contact list",
+                            },
+                            400,
+                        )
+                        return
+                except ContactError as exc:
+                    self._json({"ok": False, "error": exc.text, "hint": exc.hint}, 400)
+                    return
+                save(box_path, box)
+                self._json({"ok": True, "contact": contact})
                 return
             if path == "/api/scrub":
                 self._json(scrub_html(str(body.get("html") or "")))
@@ -116,14 +189,17 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
                 self._json({"ok": bool(row), "row": row})
                 return
             if path == "/api/compose":
+                target, nick = resolve_recipient(list_contacts(box), str(body.get("to") or ""))
                 draft = {
                     "from": body.get("from") or "local@azmail.demo",
-                    "to": body.get("to") or "",
+                    "to": target,
                     "subject": body.get("subject") or "",
                     "body_text": body.get("body") or body.get("body_text") or "",
                     "demo": True,
                     "note": "v0.1 compose is local only. It does not send internet email.",
                 }
+                if nick:
+                    draft["to_nickname"] = nick
                 box.setdefault("drafts", []).append(draft)
                 save(box_path, box)
                 self._json(draft)

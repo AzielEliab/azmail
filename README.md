@@ -21,7 +21,7 @@ azmail ui
 
 3. Go to http://127.0.0.1:8876/ and choose **Check a message**.
 
-`azmail doctor` checks this install. `azmail --help` lists commands. Add `--json` when you need the machine record.
+`azmail doctor` checks this install. `azmail --help` lists commands. Add `--json` when you need the machine record. Contacts, with nicknames, are the **Contacts** tab in the app and `azmail contact`.
 
 Same three steps are in [RUN.txt](RUN.txt). Spec: [docs/whitepaper.md](docs/whitepaper.md). Mesh contract: [docs/mesh.md](docs/mesh.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -153,6 +153,10 @@ azmail classify --from 'a@b.com' --subject hello --body hi
 azmail receive --from 'help@paypa1-verify.com' --subject 'URGENT verify' --body 'reset your password immediately'
 azmail list airlock
 azmail release AM-…
+azmail contact list
+azmail contact add --nickname Sam --address sam@example.com
+azmail contact edit --nickname Sam --address sam@new.example
+azmail contact remove --nickname Sam
 azmail --json classify --from 'a@b.com' --subject hello --body hi
 azmail scrub --html '<script>x</script>'
 azmail import mailbox.json
