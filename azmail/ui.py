@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -51,9 +52,22 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
             raw = self.rfile.read(n) if n else b"{}"
             return json.loads(raw.decode("utf-8") or "{}")
 
+        def _wants_json(self) -> bool:
+            accept = (self.headers.get("Accept") or "").lower()
+            json_at = accept.find("application/json")
+            if json_at < 0:
+                return False
+            html_at = accept.find("text/html")
+            if html_at < 0:
+                return True
+            return json_at < html_at
+
         def do_GET(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
             if path in {"/", "/index.html"}:
+                if self._wants_json():
+                    self._json(_health())
+                    return
                 self._html()
                 return
             box = load(box_path)
@@ -61,18 +75,7 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
                 self._json(box)
                 return
             if path == "/api/health":
-                self._json(
-                    {
-                        "ok": True,
-                        "product": "azmail",
-                        "version": __version__,
-                        "spec": SPEC_STRING,
-                        "limitation": LIMITATION,
-                        "sigil": SIGIL_URL,
-                        "loopback": True,
-                        "mta": False,
-                    }
-                )
+                self._json(_health())
                 return
             if path == "/api/doctor":
                 from azmail.doctor import run_doctor
@@ -162,11 +165,37 @@ def make_server(host: str, port: int, mailbox: Path | None = None) -> ThreadingH
     return ThreadingHTTPServer((host, port), Handler)
 
 
+def _health() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "product": "azmail",
+        "version": __version__,
+        "spec": SPEC_STRING,
+        "limitation": LIMITATION,
+        "sigil": SIGIL_URL,
+        "loopback": True,
+        "mta": False,
+    }
+
+
+def open_line(port: int) -> str:
+    return f"Open http://{LOOPBACK}:{port}/"
+
+
 def serve(host: str = LOOPBACK, port: int = DEFAULT_PORT, mailbox: Path | None = None) -> int:
-    server = make_server(host, port, mailbox)
-    print(f"AZMail UI http://{LOOPBACK}:{port} (loopback only)")
-    print(LIMITATION)
-    print(f"Sigil: {SIGIL_URL}")
+    try:
+        server = make_server(host, port, mailbox)
+    except ValueError as exc:
+        print(f"{exc}\nTry: azmail ui", file=sys.stderr)
+        return 1
+    except OSError:
+        print(
+            f"Port {port} is already in use.\nTry: azmail ui --port {int(port) + 1}",
+            file=sys.stderr,
+        )
+        return 1
+    bound = int(server.server_address[1])
+    print(open_line(bound))
     try:
         server.serve_forever()
     except KeyboardInterrupt:

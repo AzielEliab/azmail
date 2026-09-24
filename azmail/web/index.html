@@ -3,268 +3,572 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AZMail — Mail Airlock</title>
+  <title>AZMail</title>
   <style>
-    :root { color-scheme: dark; --bg:#0b0b0b; --card:#141414; --gold:#c9a227; --gold-dim:#8a7219; --ivory:#e8e0d0; --muted:#9a927e; --line:#2a2414; --risk:#b54a4a; --ok:#7dcf9a; }
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f0e6;
+      --card: #fffdf8;
+      --ink: #1c1914;
+      --muted: #4a453c;
+      --line: #e3d9c6;
+      --gold: #c9a227;
+      --gold-ink: #1a1608;
+      --ok: #1d6b3a;
+      --risk: #8d2a2a;
+      --hold: #6d5a16;
+      --shadow: 0 1px 2px rgba(28, 25, 20, 0.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12110e;
+        --card: #1c1a16;
+        --ink: #f3efe6;
+        --muted: #c4baab;
+        --line: #3a3428;
+        --gold: #c9a227;
+        --gold-ink: #1a1608;
+        --ok: #9ed8b2;
+        --risk: #ffb4b4;
+        --hold: #e6d59a;
+        --shadow: none;
+      }
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; font: 15px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--ivory); }
-    header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); }
-    header img { width:36px; height:36px; }
-    header h1 { margin:0; font-size:1.25rem; color: var(--gold); letter-spacing:.04em; }
-    header .motto { color: var(--muted); font-size:.9rem; }
-    .banner { margin: 12px 18px 0; border:1px solid #5c4a1a; background:#241c0d; color:#f0d78c; padding:.75rem 1rem; border-radius:8px; font-size:.88rem; }
-    .layout { display:grid; grid-template-columns: 200px 1fr 320px; min-height: calc(100vh - 140px); }
-    @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } nav, aside { border:0; } }
-    nav { border-right:1px solid var(--line); padding:12px; }
-    nav button { display:block; width:100%; text-align:left; background:transparent; color:var(--ivory); border:1px solid transparent; padding:.55rem .7rem; border-radius:8px; margin-bottom:6px; cursor:pointer; font:inherit; }
-    nav button.active, nav button:hover { border-color: var(--gold-dim); color: var(--gold); }
-    main { padding: 14px 16px; }
-    aside { border-left:1px solid var(--line); padding:14px; }
-    .card { background: var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
-    .badge { display:inline-block; font-size:.75rem; font-weight:700; letter-spacing:.04em; padding:.15rem .5rem; border-radius:999px; border:1px solid var(--gold-dim); color:var(--gold); }
-    .badge.unverified { color:#f0d78c; }
-    .badge.high-risk, .badge.quarantined { color:#ffb4b4; border-color:#b54a4a; }
-    .badge.verified { color:var(--ok); border-color:#2d6a45; }
-    label { display:block; font-size:.8rem; color:var(--muted); margin:.4rem 0 .2rem; }
-    input, textarea, select { width:100%; background:#1a1a1a; color:var(--ivory); border:1px solid var(--line); border-radius:8px; padding:.5rem .6rem; font:inherit; }
-    textarea { min-height: 90px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    button.act { background: var(--gold); color:#14110a; border:0; border-radius:8px; padding:.5rem .85rem; font-weight:700; cursor:pointer; }
-    button.ghost { background:transparent; color:var(--gold); border:1px solid var(--gold-dim); border-radius:8px; padding:.5rem .85rem; cursor:pointer; }
-    pre { white-space: pre-wrap; word-break: break-word; font-size:.78rem; color:#cfc6ad; }
-    .msg { cursor:pointer; }
-    .msg:hover { border-color: var(--gold-dim); }
-    footer { padding:10px 18px 20px; color:var(--muted); font-size:.8rem; }
-    footer a { color: var(--gold); }
+    html, body { margin: 0; max-width: 100%; overflow-x: hidden; }
+    body {
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    :focus-visible {
+      outline: 3px solid var(--gold);
+      outline-offset: 2px;
+    }
+    .wrap { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    header { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 0.75rem; }
+    h1 { font-size: 1.75rem; line-height: 1.15; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+    .by { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    .lede { margin: 0 0 1.25rem; max-width: 38rem; font-size: 1.05rem; }
+    .stage { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media (min-width: 800px) {
+      .stage { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); align-items: start; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin: 0.75rem 0 0.3rem; }
+    input, textarea {
+      width: 100%;
+      max-width: 100%;
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.6rem 0.7rem;
+      font: inherit;
+    }
+    textarea { min-height: 7rem; resize: vertical; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+    button, summary, .file {
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--gold);
+      color: var(--gold-ink);
+      border: 0;
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      font-weight: 700;
+      min-height: 44px;
+    }
+    button.primary:focus-visible {
+      outline-color: var(--gold-ink);
+      box-shadow: 0 0 0 3px var(--gold);
+    }
+    button.ghost, .file {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.55rem 0.85rem;
+      min-height: 44px;
+    }
+    .tabs { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .tabs button { flex: 1 1 0; }
+    .tabs button[aria-selected="true"] {
+      border-color: var(--gold);
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .msg { margin-bottom: 0.6rem; }
+    .msg h3 { margin: 0 0 0.2rem; font-size: 1rem; }
+    .meta { color: var(--muted); font-size: 0.92rem; }
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      margin-right: 0.35rem;
+    }
+    .badge.verified { color: var(--ok); border-color: var(--ok); }
+    .badge.unverified { color: var(--hold); border-color: var(--hold); }
+    .badge.high-risk, .badge.quarantined { color: var(--risk); border-color: var(--risk); }
+    .status, .empty { white-space: pre-wrap; word-break: break-word; margin: 0.8rem 0 0; }
+    .empty { color: var(--muted); }
+    details { margin-top: 1.25rem; }
+    summary {
+      font-weight: 700;
+      padding: 0.4rem 0;
+      width: fit-content;
+    }
+    .adv { display: grid; gap: 0.75rem; margin-top: 0.75rem; }
+    .hint { color: var(--muted); font-size: 0.92rem; margin: 0.4rem 0 0; }
+    h2 { font-size: 1.05rem; margin: 0 0 0.35rem; }
+    a { color: inherit; }
+    .notes { white-space: pre-wrap; word-break: break-word; color: var(--muted); font-size: 0.92rem; }
+    @media (max-width: 420px) {
+      .wrap { padding: 1rem 0.85rem 2.5rem; }
+      header { flex-direction: column; align-items: flex-start; }
+      h1 { font-size: 1.5rem; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <img src="https://www.azielcorpuslibrary.net/sigil.png" alt="Aziel Eliab sigil">
-    <div>
+  <div class="wrap">
+    <header>
       <h1>AZMail</h1>
-      <div class="motto">No message is trusted until verified. Author: Aziel Eliab only.</div>
-    </div>
-  </header>
-  <div class="banner" id="banner">Loading limitation…</div>
-  <div class="layout">
-    <nav>
-      <button class="active" data-view="inbox">Inbox</button>
-      <button data-view="airlock">Airlock queue</button>
-      <button data-view="quarantine">Quarantine</button>
-      <button data-view="compose">Compose (demo)</button>
-      <button data-view="receive">Receive into airlock</button>
-      <button data-view="mesh">Mesh + keywords</button>
-      <button data-view="io">Import / export</button>
-    </nav>
-    <main id="main"></main>
-    <aside>
-      <div class="card">
-        <strong>Trust badges</strong>
-        <p><span class="badge verified">verified</span> source auth pass + clean layers</p>
-        <p><span class="badge unverified">unverified</span> held in airlock</p>
-        <p><span class="badge high-risk">high-risk</span> needs your confirmation</p>
-        <p><span class="badge quarantined">quarantined</span> known-phish / harvest</p>
-      </div>
-      <div class="card">
-        <strong>Doctor / verify</strong>
+      <p class="by">Aziel Eliab</p>
+    </header>
+    <p class="lede">Checks a message before it lands in your inbox, and holds anything risky until you release it.</p>
+    <div class="stage">
+      <form class="card" id="check-form">
+        <label for="from">From</label>
+        <input id="from" name="from" autocomplete="off" placeholder="Name &lt;person@example.com&gt;">
+        <label for="subject">Subject</label>
+        <input id="subject" name="subject" autocomplete="off">
+        <label for="body">Message</label>
+        <textarea id="body" name="body"></textarea>
         <div class="row">
-          <button class="act" id="doctor-btn">Run doctor</button>
-          <button class="ghost" id="verify-btn">Verify mailbox</button>
+          <button class="primary" type="submit">Check this message</button>
+          <button class="ghost" type="button" id="doctor-btn">Doctor</button>
         </div>
-        <pre id="doctor-out"></pre>
+        <p class="status" id="result" role="status"></p>
+        <p class="status" id="doctor-out" role="status"></p>
+      </form>
+      <section class="card" aria-labelledby="list-title">
+        <div class="tabs" role="tablist" aria-label="Mailbox">
+          <button type="button" class="ghost" role="tab" id="tab-inbox" data-view="inbox" aria-selected="true">Inbox</button>
+          <button type="button" class="ghost" role="tab" id="tab-airlock" data-view="airlock" aria-selected="false">Held</button>
+          <button type="button" class="ghost" role="tab" id="tab-quarantine" data-view="quarantine" aria-selected="false">Quarantine</button>
+        </div>
+        <h2 id="list-title">Inbox</h2>
+        <div id="list"></div>
+      </section>
+    </div>
+    <details id="advanced">
+      <summary>Advanced</summary>
+      <div class="adv">
+        <section class="card">
+          <h2>Message extras</h2>
+          <p class="hint">Used the next time you check a message. Preview does not save it.</p>
+          <label for="html">HTML</label>
+          <textarea id="html"></textarea>
+          <label for="auth">Authentication-Results, if you already have them</label>
+          <input id="auth" placeholder="spf=pass; dkim=pass; dmarc=pass" autocomplete="off">
+          <div class="row">
+            <button class="ghost" type="button" id="preview">Preview only</button>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Draft</h2>
+          <p class="hint">Saved on this computer.</p>
+          <label for="c-to">To</label>
+          <input id="c-to" autocomplete="off">
+          <label for="c-subject">Subject</label>
+          <input id="c-subject" autocomplete="off">
+          <label for="c-body">Message</label>
+          <textarea id="c-body"></textarea>
+          <div class="row"><button class="ghost" type="button" id="c-save">Save draft</button></div>
+          <p class="status" id="c-out" role="status"></p>
+          <div id="drafts"></div>
+        </section>
+        <section class="card">
+          <h2>Anonymous ring</h2>
+          <p class="hint" id="mesh-status">Off until you turn it on. This switch stays on this computer.</p>
+          <div class="row">
+            <button class="ghost" type="button" id="m-on">Turn on</button>
+            <button class="ghost" type="button" id="m-off">Turn off</button>
+          </div>
+          <label for="m-text">Message</label>
+          <textarea id="m-text"></textarea>
+          <div class="row">
+            <button class="ghost" type="button" id="m-send">Queue on this computer</button>
+            <button class="ghost" type="button" id="m-listen">Show queued messages</button>
+          </div>
+          <label for="m-keys">Alert words, separated by commas</label>
+          <input id="m-keys" autocomplete="off">
+          <div class="row"><button class="ghost" type="button" id="m-keys-set">Save alert words</button></div>
+          <p class="status" id="m-out" role="status"></p>
+        </section>
+        <section class="card">
+          <h2>Import and export</h2>
+          <div class="row">
+            <button class="ghost" type="button" id="export">Export mailbox</button>
+            <button class="ghost" type="button" id="import-btn">Import mailbox</button>
+            <input id="import" type="file" accept="application/json,.json" hidden>
+            <button class="ghost" type="button" id="verify">Check mailbox file</button>
+          </div>
+          <p class="status" id="io-out" role="status"></p>
+        </section>
+        <section class="card">
+          <h2>Notes</h2>
+          <p class="notes" id="notes">Open this section to read the notes for this install.</p>
+        </section>
       </div>
-      <div class="card">
-        <strong>Aspirational</strong>
-        <p>&lt;1s inbox delay · parallel scan · real-time link analysis. Targets, not a v0.1 SLA.</p>
-      </div>
-    </aside>
+    </details>
   </div>
-  <footer>
-    This page is the human UI. Agents use FragGate only:
-    <code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code>
-    body <code>{"slug":"azmail","op":"…","payload":{}}</code>
-    — not a separate mail MCP
-    (<a href="https://github.com/AzielEliab/fraggate">kernel</a>).
-    Library <a href="https://www.azielcorpuslibrary.net/">azielcorpuslibrary.net</a> ·
-    <a href="https://godlock.uk">godlock.uk</a> ·
-    <a href="https://www.azieleliab.com">azieleliab.com</a> ·
-    Apache-2.0 · forks always allowed.
-  </footer>
   <script>
-    const state = { view: "inbox", box: { inbox: [], airlock: [], quarantine: [], drafts: [], mesh: { enabled: false, keywords: [] } } };
+    const BADGE = {
+      verified: "Verified",
+      unverified: "Unverified",
+      "high-risk": "High risk",
+      quarantined: "Quarantined",
+    };
+    const FLAG = {
+      urgency: "Urgent wording",
+      credentials: "Asks for a password or login",
+      payment_language: "Payment wording",
+      unexpected_attachment: "Unexpected attachment",
+      first_seen_sender: "Sender not in your history",
+      display_name_address_mismatch: "Display name does not match the address",
+      unexpected_domain_for_known_name: "Known name on a different domain",
+      known_phish: "Known phishing pattern",
+      lookalike: "Lookalike domain",
+      new_or_suspicious_domain: "New or unusual domain",
+      source_unverified: "Sender authentication was not a pass",
+      html_scrubbed: "Something was removed from the HTML",
+    };
+    const TITLES = { inbox: "Inbox", airlock: "Held", quarantine: "Quarantine" };
+    const EMPTY = {
+      inbox: "Nothing in your inbox yet. Check a message to start.",
+      airlock: "Nothing is held.",
+      quarantine: "Nothing is set aside.",
+    };
+    const state = { view: "inbox", box: { inbox: [], airlock: [], quarantine: [], drafts: [], mesh: {} } };
+
+    function esc(value) {
+      return String(value || "").replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      })[ch]);
+    }
 
     async function api(path, body) {
-      const opt = body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {};
+      const opt = body
+        ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }
+        : {};
       const res = await fetch(path, opt);
       return res.json();
     }
 
-    function badge(cls) {
-      const b = (cls && cls.badge) || "unverified";
-      return `<span class="badge ${b}">${b}</span>`;
+    function messageFields() {
+      const auth = document.getElementById("auth").value.trim();
+      return {
+        from: document.getElementById("from").value,
+        to: "you@local",
+        subject: document.getElementById("subject").value,
+        body_text: document.getElementById("body").value,
+        body_html: document.getElementById("html").value,
+        headers: auth ? { "Authentication-Results": auth } : {},
+      };
     }
 
-    function list(items, empty) {
-      if (!items.length) return `<p>${empty}</p>`;
-      return items.map((row) => {
-        const m = row.message || row;
+    function notesFor(flags) {
+      const lines = (flags || []).map((flag) => FLAG[flag] || flag);
+      return lines.length ? "Notes: " + lines.join("; ") : "";
+    }
+
+    function plainResult(data, preview) {
+      const cls = data.classification || data;
+      const lines = [];
+      if (preview) lines.push("Preview only. Nothing was saved.");
+      else if (data.released) lines.push("In your inbox.");
+      else if (cls.verdict === "quarantine") lines.push("Set aside in quarantine.");
+      else lines.push("Held in the airlock.");
+      lines.push(BADGE[cls.badge] || cls.badge || "Checked");
+      if (data.id) lines.push("Id: " + data.id);
+      const notes = notesFor(cls.flags);
+      if (notes) lines.push(notes);
+      if (!preview && data.id && !data.released && cls.verdict !== "quarantine") {
+        lines.push("Release it from Held when you are ready.");
+      }
+      return lines.filter(Boolean).join("\n");
+    }
+
+    function meshPlain(out, action) {
+      if (!out) return "No answer from this computer.";
+      if (out.code === "MESH_DISABLED") return "The anonymous ring is off. Turn it on to queue a message on this computer.";
+      if (out.code === "MESH_REFUSE") {
+        const reason = out.reason || "";
+        if (reason === "mesh_refuse_credential_harvest") return "Not sent. That text looks like a password or a credential.";
+        if (reason === "mesh_refuse_doxxing") return "Not sent. That text looks like it identifies a person.";
+        if (String(reason).startsWith("mesh_refuse_pii")) return "Not sent. That text looks like an email address or other identity.";
+        return "Not sent. " + (reason || "That text was refused.");
+      }
+      if (out.code === "MESH_RATE_LIMIT") {
+        const limit = out.limit;
+        const windowSec = out.window_sec;
+        if (limit && windowSec) return "Not sent. This computer is over the local limit (" + limit + " in " + windowSec + " seconds).";
+        return "Not sent. This computer is over the local limit. Wait and try again.";
+      }
+      if (action === "enable") return out.enabled ? "Anonymous ring is on." : "The anonymous ring stayed off.";
+      if (action === "disable") return "Anonymous ring is off.";
+      if (action === "broadcast" && out.queued) {
+        const alerts = (out.keyword_alerts || []).map((item) => item.keyword).filter(Boolean);
+        return "Queued on this computer." + (alerts.length ? "\nMatched: " + alerts.join(", ") : "");
+      }
+      if (action === "listen") {
+        const items = out.items || [];
+        if (!items.length) return "No messages queued on this computer.";
+        return items.map((item) => (item.handle || "") + ": " + (item.text || "")).join("\n");
+      }
+      if (action === "keywords") {
+        const words = out.keywords || [];
+        return "Saved alert words: " + (words.length ? words.join(", ") : "none");
+      }
+      return out.note || "Done.";
+    }
+
+    function renderList() {
+      const view = state.view;
+      document.getElementById("list-title").textContent = TITLES[view];
+      document.querySelectorAll("[data-view]").forEach((btn) => {
+        btn.setAttribute("aria-selected", btn.dataset.view === view ? "true" : "false");
+      });
+      const rows = (state.box && state.box[view]) || [];
+      const host = document.getElementById("list");
+      if (!rows.length) {
+        host.innerHTML = `<p class="empty">${esc(EMPTY[view])}</p>`;
+        return;
+      }
+      host.innerHTML = rows.map((row) => {
+        const message = row.message || {};
         const cls = row.classification || {};
-        return `<div class="card msg" data-id="${row.id || ""}">
-          <div>${badge(cls)} <strong>${(m.subject || "(no subject)").replace(/</g,"&lt;")}</strong></div>
-          <div>${(m.from || "").replace(/</g,"&lt;")} → ${(m.to || "").replace(/</g,"&lt;")}</div>
-          <div>${(m.body_text || "").slice(0, 160).replace(/</g,"&lt;")}</div>
-          ${row.id && state.view === "airlock" ? `<div class="row"><button class="act" data-release="${row.id}">Confirm release</button></div>` : ""}
-        </div>`;
+        const badge = cls.badge || "";
+        const label = BADGE[badge] || badge;
+        const release = view === "airlock" && row.id
+          ? `<div class="row"><button class="ghost" type="button" data-release="${esc(row.id)}">Release to inbox</button></div>`
+          : "";
+        return `<article class="msg">
+          <h3>${badge ? `<span class="badge ${esc(badge)}">${esc(label)}</span> ` : ""}${esc(message.subject || "(no subject)")}</h3>
+          <p class="meta">${esc(message.from || "")}</p>
+          <p>${esc((message.body_text || "").slice(0, 180))}</p>
+          ${release}
+        </article>`;
       }).join("");
     }
 
-    function render() {
-      const v = state.view;
-      const box = state.box;
-      const mesh = box.mesh || {};
-      const main = document.getElementById("main");
-      if (v === "inbox") main.innerHTML = `<h2>Inbox</h2>${list(box.inbox || [], "No released mail yet.")}`;
-      if (v === "airlock") main.innerHTML = `<h2>Airlock</h2><p>receive → isolate → analyze → classify → release</p>${list(box.airlock || [], "Queue empty.")}`;
-      if (v === "quarantine") main.innerHTML = `<h2>Quarantine</h2>${list(box.quarantine || [], "Nothing quarantined.")}`;
-      if (v === "compose") main.innerHTML = `<h2>Compose (demo — does not send internet email)</h2>
-        <div class="card">
-          <label>To</label><input id="c-to">
-          <label>Subject</label><input id="c-subject">
-          <label>Body</label><textarea id="c-body"></textarea>
-          <div class="row"><button class="act" id="c-send">Save local draft</button></div>
-          <pre id="c-out"></pre>
-        </div>`;
-      if (v === "receive") main.innerHTML = `<h2>Receive into airlock</h2>
-        <div class="card">
-          <label>From</label><input id="r-from" placeholder="Name &lt;user@domain&gt;">
-          <label>To</label><input id="r-to" value="you@local">
-          <label>Subject</label><input id="r-subject">
-          <label>Text</label><textarea id="r-body"></textarea>
-          <label>HTML (optional)</label><textarea id="r-html"></textarea>
-          <label>Authentication-Results (optional)</label><input id="r-auth" placeholder="spf=pass; dkim=pass; dmarc=pass">
-          <div class="row">
-            <button class="act" id="r-cls">airlock_classify</button>
-            <button class="ghost" id="r-go">Airlock receive</button>
-          </div>
-          <pre id="r-out"></pre>
-        </div>`;
-      if (v === "mesh") main.innerHTML = `<h2>Anonymous mesh</h2>
-        <div class="card">
-          <p>Product-local leftover ring. Off by default. Easy off-switch. No PII in handles. Agents: <code>POST …/v1/fraggate/call</code> <code>{"slug":"azmail","op":"mesh_enable|mesh_disable"}</code>. Not suite QNM (Worker Live Nodes strip + <code>/v1/mesh/*</code> PROXY, FragGate <code>slug=mesh</code>). Not a mail MCP outside FragGate.</p>
-          <p>Handle: <code>${(mesh.handle || "anon-…")}</code> · enabled: <strong>${mesh.enabled ? "on" : "OFF"}</strong></p>
-          <div class="row">
-            <button class="act" id="m-on">mesh_enable</button>
-            <button class="ghost" id="m-off">mesh_disable</button>
-          </div>
-          <label>Broadcast (anonymous)</label><textarea id="m-text" placeholder="No emails, no passwords, no doxxing."></textarea>
-          <div class="row"><button class="act" id="m-send">Broadcast</button></div>
-          <label>Keyword alerts (comma-separated). Alert without revealing identity.</label>
-          <input id="m-keys" value="${(mesh.keywords || []).join(", ")}">
-          <div class="row"><button class="ghost" id="m-keys-set">Save keywords</button></div>
-          <pre id="m-out"></pre>
-        </div>`;
-      if (v === "io") main.innerHTML = `<h2>Import / export</h2>
-        <div class="card">
-          <div class="row">
-            <button class="act" id="ex">Export JSON</button>
-            <label class="ghost" style="padding:.5rem .85rem; border:1px solid var(--gold-dim); border-radius:8px; cursor:pointer;">Import JSON file
-              <input id="im" type="file" accept="application/json" style="display:none">
-            </label>
-          </div>
-          <pre id="io-out"></pre>
-        </div>`;
+    function renderMesh() {
+      const mesh = (state.box && state.box.mesh) || {};
+      const on = !!mesh.enabled;
+      const keys = mesh.keywords || [];
+      const handle = mesh.handle ? ` Handle ${mesh.handle}.` : "";
+      document.getElementById("mesh-status").textContent =
+        `Anonymous ring is ${on ? "on" : "off"}.${handle} Alert words: ${keys.length ? keys.join(", ") : "none"}.`;
+      const keyInput = document.getElementById("m-keys");
+      if (document.activeElement !== keyInput) keyInput.value = keys.join(", ");
+    }
+
+    function renderDrafts() {
+      const drafts = (state.box && state.box.drafts) || [];
+      const host = document.getElementById("drafts");
+      if (!drafts.length) {
+        host.innerHTML = `<p class="empty">No drafts yet.</p>`;
+        return;
+      }
+      host.innerHTML = drafts.map((row) =>
+        `<article class="msg"><h3>${esc(row.subject || "(no subject)")}</h3><p class="meta">${esc(row.to || "")}</p></article>`
+      ).join("");
     }
 
     async function refresh() {
       state.box = await api("/api/box");
-      const health = await api("/api/health");
-      document.getElementById("banner").textContent = health.limitation || "";
-      render();
+      renderList();
+      renderMesh();
+      renderDrafts();
     }
 
-    document.querySelector("nav").addEventListener("click", (e) => {
-      const btn = e.target.closest("button");
+    document.querySelector(".tabs").addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-view]");
       if (!btn) return;
-      document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b === btn));
       state.view = btn.dataset.view;
-      render();
+      renderList();
     });
 
-    document.getElementById("main").addEventListener("click", async (e) => {
-      const rel = e.target.dataset.release;
-      if (rel) {
-        await api("/api/release", { id: rel });
-        await refresh();
+    document.getElementById("list").addEventListener("click", async (event) => {
+      const id = event.target && event.target.dataset && event.target.dataset.release;
+      if (!id) return;
+      const out = await api("/api/release", { id });
+      document.getElementById("result").textContent = out.ok
+        ? "Released to your inbox.\nId: " + id
+        : "That message is not held anymore. Look in Inbox or Quarantine.";
+      state.view = out.ok ? "inbox" : state.view;
+      await refresh();
+    });
+
+    document.getElementById("check-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const result = document.getElementById("result");
+      const msg = messageFields();
+      if (!msg.from.trim()) {
+        result.textContent = "Add who the message is from, then check it.";
+        document.getElementById("from").focus();
         return;
       }
-      if (e.target.id === "c-send") {
-        const out = await api("/api/compose", {
-          to: document.getElementById("c-to").value,
-          subject: document.getElementById("c-subject").value,
-          body: document.getElementById("c-body").value,
-        });
-        document.getElementById("c-out").textContent = JSON.stringify(out, null, 2);
+      try {
+        const out = await api("/api/receive", msg);
+        result.textContent = plainResult(out, false);
+        state.view = out.released ? "inbox" : (out.classification && out.classification.verdict === "quarantine" ? "quarantine" : "airlock");
         await refresh();
+      } catch (err) {
+        result.textContent = "Could not check that message. Keep this page open from azmail ui and try again.";
       }
-      if (e.target.id === "r-cls" || e.target.id === "r-go") {
-        const auth = document.getElementById("r-auth").value;
-        const msg = {
-          from: document.getElementById("r-from").value,
-          to: document.getElementById("r-to").value,
-          subject: document.getElementById("r-subject").value,
-          body_text: document.getElementById("r-body").value,
-          body_html: document.getElementById("r-html").value,
-          headers: auth ? { "Authentication-Results": auth } : {},
-        };
-        if (e.target.id === "r-cls") {
-          document.getElementById("r-out").textContent = JSON.stringify(await api("/api/airlock_classify", msg), null, 2);
+    });
+
+    document.getElementById("preview").addEventListener("click", async () => {
+      const result = document.getElementById("result");
+      const msg = messageFields();
+      if (!msg.from.trim()) {
+        result.textContent = "Add who the message is from, then preview it.";
+        document.getElementById("from").focus();
+        return;
+      }
+      try {
+        const out = await api("/api/airlock_classify", msg);
+        result.textContent = plainResult(out, true);
+      } catch (err) {
+        result.textContent = "Could not preview that message. Try again from this page.";
+      }
+    });
+
+    document.getElementById("doctor-btn").addEventListener("click", async () => {
+      const slot = document.getElementById("doctor-out");
+      slot.textContent = "Checking this install…";
+      try {
+        const data = await api("/api/doctor");
+        if (data.ok) {
+          slot.textContent = "Doctor passed.";
           return;
         }
-        const out = await api("/api/receive", msg);
-        document.getElementById("r-out").textContent = JSON.stringify(out, null, 2);
-        await refresh();
-      }
-      if (e.target.id === "m-on") { document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "enable" }), null, 2); await refresh(); }
-      if (e.target.id === "m-off") { document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "disable" }), null, 2); await refresh(); }
-      if (e.target.id === "m-send") {
-        document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "broadcast", text: document.getElementById("m-text").value }), null, 2);
-        await refresh();
-      }
-      if (e.target.id === "m-keys-set") {
-        const keys = document.getElementById("m-keys").value.split(",").map((s) => s.trim()).filter(Boolean);
-        document.getElementById("m-out").textContent = JSON.stringify(await api("/api/mesh", { action: "keywords", keywords: keys }), null, 2);
-        await refresh();
-      }
-      if (e.target.id === "ex") {
-        const blob = new Blob([JSON.stringify(state.box, null, 2)], { type: "application/json" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "azmail-mailbox.json";
-        a.click();
+        const bad = (data.checks || []).filter((item) => !item.ok).map((item) => item.name);
+        slot.textContent = "Doctor failed." + (bad.length ? " Look at: " + bad.join(", ") + "." : "");
+      } catch (err) {
+        slot.textContent = "Doctor could not finish. Try azmail doctor in the terminal.";
       }
     });
-    document.getElementById("main").addEventListener("change", async (e) => {
-      if (e.target.id === "im" && e.target.files[0]) {
-        const text = await e.target.files[0].text();
-        const mailbox = JSON.parse(text);
-        document.getElementById("io-out").textContent = JSON.stringify(await api("/api/import", { mailbox }), null, 2);
-        await refresh();
+
+    document.getElementById("c-save").addEventListener("click", async () => {
+      const slot = document.getElementById("c-out");
+      const to = document.getElementById("c-to").value.trim();
+      if (!to) {
+        slot.textContent = "Add who the draft is to, then save it.";
+        document.getElementById("c-to").focus();
+        return;
       }
+      const out = await api("/api/compose", {
+        to,
+        subject: document.getElementById("c-subject").value,
+        body: document.getElementById("c-body").value,
+      });
+      slot.textContent = "Draft saved on this computer.\nTo: " + (out.to || to);
+      await refresh();
     });
-    document.getElementById("doctor-btn").onclick = async () => {
-      document.getElementById("doctor-out").textContent = JSON.stringify(await api("/api/doctor"), null, 2);
-    };
-    document.getElementById("verify-btn").onclick = async () => {
+
+    async function mesh(action, extra) {
+      const slot = document.getElementById("m-out");
+      try {
+        const out = await api("/api/mesh", Object.assign({ action }, extra || {}));
+        slot.textContent = meshPlain(out, action);
+        await refresh();
+      } catch (err) {
+        slot.textContent = "Could not update the ring. Try azmail mesh status.";
+      }
+    }
+    document.getElementById("m-on").addEventListener("click", () => mesh("enable"));
+    document.getElementById("m-off").addEventListener("click", () => mesh("disable"));
+    document.getElementById("m-send").addEventListener("click", () => mesh("broadcast", { text: document.getElementById("m-text").value }));
+    document.getElementById("m-listen").addEventListener("click", () => mesh("listen"));
+    document.getElementById("m-keys-set").addEventListener("click", () => {
+      const keys = document.getElementById("m-keys").value.split(",").map((part) => part.trim()).filter(Boolean);
+      mesh("keywords", { keywords: keys });
+    });
+
+    document.getElementById("export").addEventListener("click", async () => {
       const box = await api("/api/box");
-      document.getElementById("doctor-out").textContent = JSON.stringify({
-        ok: box.schema === "azmail-mailbox-v0",
-        inbox: (box.inbox || []).length,
-        airlock: (box.airlock || []).length,
-        mesh_enabled: !!(box.mesh && box.mesh.enabled),
-      }, null, 2);
-    };
-    refresh();
+      const blob = new Blob([JSON.stringify(box, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "azmail-mailbox.json";
+      link.click();
+      document.getElementById("io-out").textContent = "Exported azmail-mailbox.json.";
+    });
+
+    document.getElementById("import-btn").addEventListener("click", () => {
+      document.getElementById("import").click();
+    });
+
+    document.getElementById("import").addEventListener("change", async (event) => {
+      const slot = document.getElementById("io-out");
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      let mailbox;
+      try {
+        mailbox = JSON.parse(await file.text());
+      } catch (err) {
+        slot.textContent = "That file is not JSON. Choose an AZMail mailbox export.";
+        return;
+      }
+      const out = await api("/api/import", { mailbox });
+      slot.textContent = out.ok
+        ? "Imported the mailbox."
+        : "That file is not an AZMail mailbox. Export from this app, then try the file again.";
+      await refresh();
+    });
+
+    document.getElementById("verify").addEventListener("click", async () => {
+      const box = await api("/api/box");
+      const slot = document.getElementById("io-out");
+      if (box.schema !== "azmail-mailbox-v0") {
+        slot.textContent = "This mailbox is not one AZMail can read.";
+        return;
+      }
+      const ring = box.mesh && box.mesh.enabled ? "on" : "off";
+      slot.textContent = `Mailbox file looks right. Inbox ${(box.inbox || []).length}. Held ${(box.airlock || []).length}. Quarantine ${(box.quarantine || []).length}. Anonymous ring is ${ring}.`;
+    });
+
+    document.getElementById("advanced").addEventListener("toggle", async () => {
+      const notes = document.getElementById("notes");
+      if (!document.getElementById("advanced").open || notes.dataset.loaded) return;
+      try {
+        const health = await api("/api/health");
+        notes.textContent = health.limitation || "";
+        notes.dataset.loaded = "1";
+      } catch (err) {
+        notes.textContent = "Notes could not be loaded. Try azmail version --json.";
+      }
+    });
+
+    refresh().catch(() => {
+      document.getElementById("result").textContent = "Could not read the mailbox. Start this page with azmail ui.";
+    });
   </script>
 </body>
 </html>
