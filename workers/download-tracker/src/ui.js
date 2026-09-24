@@ -1,6 +1,4 @@
-/** Hosted AZMail homepage: counted download + complete mail Airlock UI. */
-import { LIMITATION } from "./engine.js";
-
+/** Hosted AZMail homepage: counted download + mail Airlock UI. */
 const HOST = "https://azmail-download-tracker.vibelock.workers.dev";
 const INSTALL_LINE = `curl -fsSL ${HOST}/install.sh | bash`;
 const SIGIL = "https://www.azielcorpuslibrary.net/sigil.png";
@@ -10,89 +8,309 @@ export function homeHtml({ views, downloads, github }) {
   const v = Number(views || 0).toLocaleString("en-US");
   const n = Number(downloads || 0).toLocaleString("en-US");
   const gh = github || {};
+  const stars = Number(gh.stars || 0).toLocaleString("en-US");
+  const forks = Number(gh.forks || 0).toLocaleString("en-US");
+  const watchers = Number(gh.watchers || 0).toLocaleString("en-US");
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AZMail — Aziel Eliab</title>
+<meta name="description" content="AZMail is a Mail Airlock. Download the package, or hold and release a message on this page.">
+<meta name="author" content="Aziel Eliab">
+<link rel="icon" href="${SIGIL}">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"AZMail","author":{"@type":"Person","name":"Aziel Eliab"},"codeRepository":"https://github.com/AzielEliab/azmail","downloadUrl":"${HOST}/download","license":"https://www.apache.org/licenses/LICENSE-2.0","url":"${HOST}/","description":"APP 1.0 anti-phishing Mail Airlock by Aziel Eliab. Not a public MTA."}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"AZMail","author":{"@type":"Person","name":"Aziel Eliab"},"codeRepository":"https://github.com/AzielEliab/azmail","downloadUrl":"${HOST}/download","license":"https://www.apache.org/licenses/LICENSE-2.0","url":"${HOST}/","description":"APP 1.0 Mail Airlock by Aziel Eliab. Hold a message, then release it on this computer."}
 </script>
 <style>
-:root { color-scheme: dark; --bg:#0b0b0b; --card:#141414; --gold:#c9a227; --gold-dim:#8a7219; --ivory:#e8e0d0; --muted:#9a927e; --line:#2a2414; --ok:#7dcf9a; }
+:root {
+  color-scheme: dark;
+  --bg: #0c0b0a;
+  --text: #f4efe6;
+  --muted: #c9c0b0;
+  --panel: #161411;
+  --line: #6f675b;
+  --gold: #e6c35c;
+  --gold-dim: #c9a227;
+  --ok: #8fd9a8;
+  --risk: #ffc1c1;
+  --focus: #ffe08a;
+  --input: #100e0c;
+  --code: #e7dcc8;
+  --link: #f0e2b8;
+  --btn-bg: #f4efe4;
+  --btn-fg: #14110a;
+}
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f6f3ec;
+    --text: #1c1914;
+    --muted: #4a4338;
+    --panel: #fffcf7;
+    --line: #6f675c;
+    --gold: #6b5010;
+    --gold-dim: #6b5010;
+    --ok: #0d5c2e;
+    --risk: #8d1d1d;
+    --focus: #1c1914;
+    --input: #ffffff;
+    --code: #3f3428;
+    --link: #5c4a16;
+    --btn-bg: #1c1914;
+    --btn-fg: #f6f3ec;
+  }
+}
 * { box-sizing: border-box; }
-body { margin:0; font:15px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--ivory); }
-header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line); }
-header img { width:40px; height:40px; }
-h1 { margin:0; font-size:1.4rem; color:var(--gold); }
-.motto { color:var(--muted); font-size:.9rem; }
-.banner { margin:12px 18px 0; border:1px solid #5c4a1a; background:#241c0d; color:#f0d78c; padding:.75rem 1rem; border-radius:8px; font-size:.88rem; }
-.nums { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; margin:12px 18px; }
-.count { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:2rem; font-weight:700; }
-.count span { display:block; font-size:.9rem; font-weight:500; color:var(--muted); }
-.btns { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin:0 18px 1rem; }
-@media (max-width:640px){ .btns,.nums,.layout{grid-template-columns:1fr;} }
-a.btn, button.btn { display:block; text-align:center; font:inherit; font-weight:750; padding:1rem; border-radius:10px; border:0; cursor:pointer; text-decoration:none; }
-a.btn.primary { background:var(--ivory); color:#0b0b0b; }
-button.btn.install { background:var(--gold); color:#14110a; }
-.layout { display:grid; grid-template-columns:190px 1fr; min-height:50vh; border-top:1px solid var(--line); }
-nav { padding:12px; border-right:1px solid var(--line); }
-nav button { display:block; width:100%; text-align:left; background:transparent; color:var(--ivory); border:1px solid transparent; padding:.5rem .65rem; border-radius:8px; margin-bottom:6px; cursor:pointer; font:inherit; }
-nav button.active, nav button:hover { border-color:var(--gold-dim); color:var(--gold); }
-main { padding:14px 16px; }
-.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; }
-.badge { display:inline-block; font-size:.75rem; font-weight:700; padding:.15rem .5rem; border-radius:999px; border:1px solid var(--gold-dim); color:var(--gold); }
-.badge.verified { color:var(--ok); border-color:#2d6a45; }
-.badge.high-risk,.badge.quarantined { color:#ffb4b4; border-color:#b54a4a; }
-label { display:block; font-size:.8rem; color:var(--muted); margin:.4rem 0 .2rem; }
-input, textarea { width:100%; background:#1a1a1a; color:var(--ivory); border:1px solid var(--line); border-radius:8px; padding:.5rem .6rem; font:inherit; }
-textarea { min-height:80px; }
-.row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-button.act { background:var(--gold); color:#14110a; border:0; border-radius:8px; padding:.5rem .85rem; font-weight:700; cursor:pointer; }
-button.ghost { background:transparent; color:var(--gold); border:1px solid var(--gold-dim); border-radius:8px; padding:.5rem .85rem; cursor:pointer; }
-pre { white-space:pre-wrap; word-break:break-word; font-size:.78rem; color:#cfc6ad; }
-.iso { margin:0 18px 1rem; color:#7d8696; font-size:.85rem; }
-.iso a { color:#c9d4ff; }
-#meshStrip { margin:0 18px 1rem; border:1px solid var(--line); background:#101010; border-radius:12px; padding:10px 12px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; font-size:.82rem; color:var(--muted); }
-#meshStrip .live { color:var(--ivory); }
-#meshStrip .live b { color:var(--gold); font-size:1.25rem; margin-right:6px; }
-#meshStrip .rollup span { margin-right:10px; }
-#meshStrip .rollup b { color:var(--gold); }
-#meshStrip button { background:transparent; color:var(--gold); border:1px solid var(--gold-dim); border-radius:8px; padding:.35rem .7rem; cursor:pointer; font:inherit; }
-#meshStrip button:hover { border-color:var(--gold); }
-#meshProducts { flex-basis:100%; margin:0; }
-footer { padding:12px 18px 28px; color:var(--muted); font-size:.82rem; }
-footer a { color:var(--gold); }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+body { font: 16px/1.5 system-ui, "Segoe UI", sans-serif; overflow-wrap: anywhere; }
+img { max-width: 100%; }
+a { color: var(--link); }
+code, pre, .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+.skip { position: absolute; left: -999px; top: 0; }
+.skip:focus {
+  left: 1rem; top: 1rem; z-index: 5;
+  background: var(--btn-bg); color: var(--btn-fg);
+  padding: .5rem .8rem; text-decoration: none; border-radius: 8px;
+}
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible, label.ghost:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+.wrap { max-width: 58rem; margin: 0 auto; padding: 1.35rem 1.15rem 2.8rem; }
+.brandrow { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+.brandmark { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; box-shadow: 0 0 0 1px var(--line); }
+.stamp { margin: 0; color: var(--gold); font-size: .88rem; letter-spacing: .02em; }
+h1 { font-size: 2rem; letter-spacing: .02em; margin: 0 0 .2rem; line-height: 1.15; font-weight: 650; }
+.motto { color: var(--gold); font-style: italic; margin: 0 0 .7rem; font-size: 1.08rem; }
+.lede { color: var(--muted); margin: 0 0 1rem; max-width: 46rem; }
+.scope { color: var(--muted); margin: 0 0 1rem; max-width: 46rem; font-size: .95rem; }
+a.btn, button.btn {
+  font: 700 .95rem/1.1 ui-monospace, Menlo, Consolas, monospace;
+  letter-spacing: .03em;
+  border-radius: 9px;
+  cursor: pointer;
+  text-decoration: none;
+}
+a.btn.block.primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.4rem;
+  margin: 0 0 .75rem;
+  padding: 1.05rem 1.2rem;
+  border: 1px solid transparent;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  text-align: center;
+  font-size: 1.25rem;
+}
+a.btn.block.primary:hover { filter: brightness(1.06); }
+.asset-note { color: var(--muted); font-size: .95rem; margin: 0 0 .35rem; }
+.asset-note strong { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; }
+.features {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .55rem 1.2rem;
+  margin: .9rem 0 1.15rem;
+  padding: 0;
+  list-style: none;
+  max-width: 46rem;
+}
+.features li { margin: 0; padding-left: 1rem; position: relative; }
+.features li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: .55em;
+  width: .4rem;
+  height: .4rem;
+  border-radius: 50%;
+  background: var(--gold);
+}
+.install-row { margin: 0 0 .75rem; }
+button.btn.install {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: .7rem 1rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+button.btn.install:hover { background: var(--panel); }
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  background: var(--input);
+  color: var(--code);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .75rem .9rem;
+  font-size: .82rem;
+  max-width: 100%;
+  margin: 0 0 .7rem;
+}
+.hint { color: var(--muted); font-size: .92rem; margin: 0; }
+.kicker {
+  display: block;
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: .15rem;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.workspace, #meshStrip {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  margin: 1.15rem 0 0;
+}
+.workspace { padding: 1.1rem 1.1rem 1.2rem; }
+.workspace h2 { font-size: 1.12rem; margin: 0 0 .45rem; letter-spacing: .02em; font-weight: 650; }
+.layout { display: grid; grid-template-columns: 1fr; min-width: 0; border-top: 1px solid var(--line); margin-top: .4rem; }
+nav { display: flex; flex-wrap: wrap; gap: .4rem; padding: .75rem 0 .2rem; min-width: 0; }
+nav button {
+  width: auto;
+  max-width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  padding: .55rem .7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  min-height: 2.75rem;
+}
+nav button.active, nav button:hover { border-color: var(--gold-dim); color: var(--gold); background: var(--bg); }
+main { padding: .8rem 0 .2rem; min-width: 0; }
+main h2 { font-size: 1.15rem; margin: .2rem 0 .6rem; }
+.card { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.badge { display: inline-block; font-size: .75rem; font-weight: 700; padding: .15rem .5rem; border-radius: 999px; border: 1px solid var(--gold-dim); color: var(--gold); }
+.badge.verified { color: var(--ok); border-color: var(--ok); }
+.badge.high-risk, .badge.quarantined { color: var(--risk); border-color: var(--risk); }
+label { display: block; font-size: .8rem; color: var(--muted); margin: .4rem 0 .2rem; }
+input, textarea, select {
+  width: 100%;
+  max-width: 100%;
+  background: var(--input);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .5rem .6rem;
+  font: inherit;
+}
+textarea { min-height: 80px; }
+::placeholder { color: var(--muted); opacity: 1; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+button.act {
+  background: var(--gold);
+  color: var(--btn-fg);
+  border: 0;
+  border-radius: 8px;
+  padding: .55rem .85rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+button.ghost, label.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: .55rem .85rem;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+label.ghost { display: inline-block; }
+#meshStrip {
+  padding: .85rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .7rem 1rem;
+  font-size: .88rem;
+  color: var(--muted);
+}
+#meshStrip .live { color: var(--text); }
+#meshStrip .live b { color: var(--gold); font-size: 1.35rem; margin-right: .35rem; }
+#meshStrip .rollup b { color: var(--gold); }
+#meshStrip button {
+  font: 700 .78rem/1 ui-monospace, Menlo, Consolas, monospace;
+  min-height: 2.75rem;
+  padding: 0 .75rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+#meshStrip button:hover { background: var(--bg); color: var(--gold); border-color: var(--gold-dim); }
+#meshProducts { flex-basis: 100%; margin: 0; }
+footer.quiet { color: var(--muted); font-size: .9rem; margin-top: 1.25rem; }
+footer.quiet p { margin: .35rem 0; }
+footer.quiet a { color: var(--link); }
+footer.quiet .links a { display: inline-block; margin: .15rem .7rem .15rem 0; }
+@media (min-width: 800px) {
+  .features { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  button.btn.install { width: auto; min-width: 16rem; }
+  .layout { grid-template-columns: 11.5rem minmax(0, 1fr); }
+  nav { display: block; padding: .75rem .75rem 0 0; border-right: 1px solid var(--line); }
+  nav button { display: block; width: 100%; }
+  main { padding: .8rem 0 .2rem .9rem; }
+}
 </style>
 </head>
 <body>
-<header>
-  <img src="${SIGIL}" alt="Aziel Eliab sigil">
-  <div>
-    <h1>AZMail</h1>
-    <div class="motto">APP 1.0 Mail Airlock. No message is trusted until verified. Author: Aziel Eliab only.</div>
+<a class="skip" href="#downloadBtn">Skip to download</a>
+<div class="wrap">
+<header class="hero">
+  <div class="brandrow">
+    <img class="brandmark" src="${SIGIL}" width="40" height="40" alt="" decoding="async">
+    <p class="stamp">Aziel Eliab</p>
   </div>
+  <h1>AZMail</h1>
+  <p class="motto">No message is trusted until verified.</p>
+  <p class="lede">APP 1.0 Mail Airlock, v0.1.0, by Aziel Eliab only. A message waits until you release it.</p>
+  <a class="btn block primary" id="downloadBtn" href="/download?asset=${ASSET}" aria-describedby="downloadNote">Download</a>
+  <p class="asset-note" id="downloadNote"><strong>${n}</strong> downloads · <strong>${v}</strong> views · ${ASSET}</p>
+  <p class="asset-note">Counted on this Worker for every branch and fork. /v1 does not increment.</p>
+  <ul class="features">
+    <li>Hold a message until you release it</li>
+    <li>Classify and scrub run on this page</li>
+    <li>One download link for every branch and fork</li>
+  </ul>
+  <p class="scope">The package and this page hold mail on this computer. Sending mail over the internet is outside v0.1.0.</p>
+  <div class="install-row">
+    <button class="btn install" id="install-btn" type="button">One-click install</button>
+  </div>
+  <pre id="install-cmd">${INSTALL_LINE}</pre>
+  <p class="hint">Then run <code>azmail ui</code> and open http://127.0.0.1:8876 on this computer.</p>
 </header>
-<p class="banner">${LIMITATION}</p>
-<div class="nums">
-  <div class="count">${v}<span>Views</span></div>
-  <div class="count">${n}<span>Downloads</span></div>
-</div>
-<div class="btns">
-  <a class="btn primary" href="/download?asset=${ASSET}">Download ${ASSET}</a>
-  <button class="btn install" id="install-btn" type="button">One-click install</button>
-</div>
-<pre id="install-cmd" class="iso">${INSTALL_LINE}
-Then run: azmail ui  →  http://127.0.0.1:8876 (this computer only). v0.1 does not send internet email.</pre>
-<p class="iso">Isolated counter: Worker <code>azmail-download-tracker</code>, KV AZMAIL_DOWNLOADS. /v1 does not increment.
-<strong>Human UI is this page.</strong> Classify button posts <code>/v1/airlock_classify</code> (FragGate op). Door paths
-<code>/v1/fraggate/list|describe|call</code> and <code>/v1/mesh/*</code> PROXY to aziel-runtime. Suite mesh default OFF. QNM-BUILD-1.0 live|locked|isolated. QNS-CD-1.0 photon QNS1 packet transfer (hub cite / Worker cross-map only; no public qnsd proxy). SPLIT THE WIRES STW-1.0. COLD-COPY SURVIVAL CCS-1.0. Hop default-off. No Node Gate. No auto-heal. Not anonymity.
-AI / MCP path is FragGate only — no separate mail MCP:
-<code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code> body <code>{"slug":"azmail","op":"airlock_classify","payload":{}}</code>.
-Catalog MCP <code>mesh_*</code> · FragGate <code>slug=mesh</code>. Product-local leftover ring is <code>/v1/mesh_disable</code>.
-GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watchers || 0}.
-<a href="/count">/count</a> · <a href="/stats">/stats</a> · <a href="/v1/skill">Skill</a> · <a href="/ai">AI / FragGate</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/mcp">/mcp</a> · <a href="https://github.com/AzielEliab/azmail">GitHub</a></p>
+
+<section class="workspace" id="mailbox" aria-label="Mailbox">
+  <h2><span class="kicker">On this page</span>Mailbox</h2>
+  <p class="lede">Inbox, airlock, compose, and receive stay in this browser. Classify posts to <code>/v1/airlock_classify</code>.</p>
+  <div class="layout">
+    <nav aria-label="Mailbox">
+      <button class="active" data-view="inbox" type="button" aria-current="page">Inbox</button>
+      <button data-view="airlock" type="button">Airlock queue</button>
+      <button data-view="compose" type="button">Compose (demo)</button>
+      <button data-view="receive" type="button">Receive</button>
+      <button data-view="mesh" type="button">Mesh + keywords</button>
+      <button data-view="doctor" type="button">Doctor / verify</button>
+    </nav>
+    <main id="main"></main>
+  </div>
+</section>
+
 <div id="meshStrip" aria-label="Suite Live Nodes">
   <div class="live"><b id="meshLiveCount">0</b> Live Nodes</div>
   <div id="meshLine">Suite mesh: off (default). QNM-BUILD-1.0. QNS-CD-1.0. STW-1.0. CCS-1.0. Not an anonymity network.</div>
@@ -104,33 +322,31 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
     <button id="meshJoin" type="button" title="Join as azmail. Refused while mesh is OFF. No auto-join.">Join</button>
     <button id="meshLeave" type="button" title="Leave this node. No auto-heal.">Leave</button>
   </div>
-  <p id="meshProducts" class="iso" style="margin:0">Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · QNS-CD-1.0 hub cite · SPLIT THE WIRES STW-1.0 · COLD-COPY SURVIVAL CCS-1.0 · hop default-off · not AnonBroadcast · not AZMail leftover ring · no public qnsd proxy</p>
+  <p id="meshProducts">Catalog MCP mesh_* · FragGate slug=mesh · /v1/mesh/* PROXY · QNS-CD-1.0 hub cite · SPLIT THE WIRES STW-1.0 · COLD-COPY SURVIVAL CCS-1.0 · hop default-off · not AnonBroadcast · not AZMail leftover ring · no public qnsd proxy</p>
 </div>
 
-<div class="layout">
-  <nav>
-    <button class="active" data-view="inbox">Inbox</button>
-    <button data-view="airlock">Airlock queue</button>
-    <button data-view="compose">Compose (demo)</button>
-    <button data-view="receive">Receive</button>
-    <button data-view="mesh">Mesh + keywords</button>
-    <button data-view="doctor">Doctor / verify</button>
-  </nav>
-  <main id="main"></main>
-</div>
-<footer>
-  Independent of AZ-OS / Lumen. This page is the human UI.
-  Agents use FragGate only:
-  <code>POST https://aziel-runtime.vibelock.workers.dev/v1/fraggate/call</code>
-  <code>{"slug":"azmail",…}</code>
-  — not a mail MCP on this Worker
-  (<a href="https://github.com/AzielEliab/fraggate">kernel</a>).
-  <a href="https://www.azielcorpuslibrary.net/">library</a> ·
-  <a href="https://godlock.uk">godlock.uk</a> ·
-  <a href="https://www.azieleliab.com">azieleliab.com</a>.
-  Apache-2.0. Forks always allowed.
-  Cite: Eliab, Aziel. (2026). AZMail 0.1.0 [Software].
+<footer class="quiet">
+  <p>Apache-2.0 · Aziel Eliab · AZMail v0.1.0</p>
+  <p>This page is the human UI. Agents use FragGate with slug <code>azmail</code>.</p>
+  <p class="links">
+    <a href="https://github.com/AzielEliab/azmail">GitHub</a>
+    <a href="/openapi.json">OpenAPI</a>
+    <a href="/mcp">MCP</a>
+    <a href="/v1/skill">Skill</a>
+    <a href="/ai">Agents</a>
+    <a href="/count">Count</a>
+    <a href="/stats">Stats</a>
+    <a href="/cite.json">Cite</a>
+  </p>
+  <p>GitHub stars ${stars} · forks ${forks} · watchers ${watchers}</p>
+  <p class="links">
+    <a href="https://www.azielcorpuslibrary.net/">Library</a>
+    <a href="https://godlock.uk">godlock.uk</a>
+    <a href="https://www.azieleliab.com">azieleliab.com</a>
+    <a href="https://github.com/AzielEliab/fraggate">FragGate</a>
+  </p>
 </footer>
+</div>
 <script>
 (function () {
   var cmd = ${JSON.stringify(INSTALL_LINE)};
@@ -170,7 +386,12 @@ GitHub stars ${gh.stars || 0} · forks ${gh.forks || 0} · watchers ${gh.watcher
   }
   document.querySelector("nav").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
-    document.querySelectorAll("nav button").forEach(function (x) { x.classList.toggle("active", x === b); });
+    document.querySelectorAll("nav button").forEach(function (x) {
+      var on = x === b;
+      x.classList.toggle("active", on);
+      if (on) x.setAttribute("aria-current", "page");
+      else x.removeAttribute("aria-current");
+    });
     view = b.dataset.view; render();
   });
   document.getElementById("main").addEventListener("click", async function (e) {
