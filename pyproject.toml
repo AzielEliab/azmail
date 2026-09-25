@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "azmail"
 version = "0.1.0"
-description = "AZMail: APP 1.0 anti-phishing Mail Airlock. Local isolate/analyze/classify. Not a public MTA. Author Aziel Eliab."
+description = "AZMail checks a message before it lands in your inbox. APP 1.0 Mail Airlock. Author Aziel Eliab."
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [{name = "Aziel Eliab"}]

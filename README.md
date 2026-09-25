@@ -1,61 +1,39 @@
 # AZMail
 
-Open-source **anti-phishing Mail Airlock** — APP 1.0. No message is
-trusted until verified across identity, origin, structure, and behavior.
+AZMail checks a message before it lands in your inbox, and holds anything risky until you release it.
 
-**Author:** Aziel Eliab only
-**Date:** September 2026 · APP 1.0 / product v0.1.0
+**Author:** Aziel Eliab
 **License:** [Apache-2.0](LICENSE)
 
-> Standalone software. Optional cross-links only. No hard dependency on
-> AZ-OS, Lumen, or a separate “interface” product.
+## Start
 
-See the spec: [docs/whitepaper.md](docs/whitepaper.md).
-Mesh contract: [docs/mesh.md](docs/mesh.md).
-How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
-
-**Forks are welcome and always allowed.**
-
-## Honest scope (read this)
-
-v0.1 is a **local airlock + compose + mesh client helpers**. It is **not**
-a public MTA. It does **not** send internet email. Hosted
-`/v1/airlock_classify` (leftover alias `/v1/classify`) and `/v1/scrub`
-are advisory demos and are not stored. `/v1/fraggate/*` and `/v1/mesh/*` PROXY to
-aziel-runtime via the `AZIEL_RUNTIME` service binding. Suite QNM is
-default OFF (live|locked|isolated). Product-local leftover ring is
-`POST /v1/mesh_disable`, not `/v1/mesh/*`.
-**QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh
-cross-map on `workers/download-tracker/src/mesh.js` — not a
-Softwares-tab product and not a public `qnsd` proxy.
-**SPLIT THE WIRES (STW-1.0)** and **COLD-COPY SURVIVAL (CCS-1.0)** are
-locked product-local mesh law in `azmail/mesh.py` and that Worker file.
-Mesh hop default-off stays. Local `qnsd` is
-coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime
-cites + catalog field live in
-[aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair
-custody is [AZInterface](https://github.com/AzielEliab/azinterface).
-Anonymous mesh chat and mail ops run via
-[aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate
-([kernel](https://github.com/AzielEliab/fraggate)); the engine lands in a
-sibling PR. This repo documents the contract and ships local helpers +
-Worker OpenAPI stubs that point at the runtime.
-
-SPF / DKIM / DMARC are **advisory parsers** of headers and record text
-you already have. Live DNS is not queried unless you supply the record.
-
-Performance copy is **aspirational**: &lt;1s inbox delay, parallel scan,
-real-time link analysis. Not a measured SLA in v0.1.
-
-## Quick start
+1. Install.
 
 ```bash
-python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+python -m venv .venv && source .venv/bin/activate && pip install -e .
+```
+
+2. Open the local app.
+
+```bash
 azmail ui
 ```
 
-Open http://127.0.0.1:8876 (loopback only). Inbox / compose / airlock
-queue / trust badges / keyword alerts. Then `azmail doctor`.
+3. Go to http://127.0.0.1:8876/ and choose **Check a message**.
+
+`azmail doctor` checks this install. `azmail --help` lists commands. Add `--json` when you need the machine record. Contacts, with nicknames, are the **Contacts** tab in the app and `azmail contact`.
+
+Same three steps are in [RUN.txt](RUN.txt). Spec: [docs/whitepaper.md](docs/whitepaper.md). Mesh contract: [docs/mesh.md](docs/mesh.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Forks are welcome and always allowed.**
+
+## Notes
+
+v0.1 is a local airlock, compose, and mesh client helpers. It does not send internet email. Hosted `/v1/airlock_classify` (leftover alias `/v1/classify`) and `/v1/scrub` are advisory demos and are not stored. `/v1/fraggate/*` and `/v1/mesh/*` PROXY to aziel-runtime via the `AZIEL_RUNTIME` service binding. Suite QNM is default OFF (live|locked|isolated). Product-local leftover ring is `POST /v1/mesh_disable`, not `/v1/mesh/*`. **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh cross-map on `workers/download-tracker/src/mesh.js` — not a Softwares-tab product and not a public `qnsd` proxy. **SPLIT THE WIRES (STW-1.0)** and **COLD-COPY SURVIVAL (CCS-1.0)** are locked product-local mesh law in `azmail/mesh.py` and that Worker file. Mesh hop default-off stays. Local `qnsd` is coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime cites live in [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair custody is [AZInterface](https://github.com/AzielEliab/azinterface). Anonymous mesh chat and mail ops run via [aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate ([kernel](https://github.com/AzielEliab/fraggate)). This repo ships the local helpers.
+
+SPF / DKIM / DMARC are advisory parsers of headers and record text you already have. Live DNS is not queried unless you supply the record.
+
+Speed lines in the spec (&lt;1s inbox delay, parallel scan, real-time link analysis) are targets, not a measured promise in v0.1.
 
 ## One-click install
 
@@ -103,12 +81,7 @@ Isolated counter: Worker `azmail-download-tracker`, KV `AZMAIL_DOWNLOADS`. `/v1`
 
 ## Dual surface
 
-1. **Human UI** — Worker homepage and `azmail ui` are complete software:
-   inbox, compose (demo), airlock queue, trust badges, keyword alert
-   settings, import/export, doctor/verify, counted download. Black / gold.
-   Humans stay here. Worker `/v1/airlock_classify` (alias `/v1/classify`)
-   and `/v1/scrub` are demo HTTP for that UI, not an agent door. The
-   classify button posts the FragGate op name `airlock_classify`.
+1. **Human** — `azmail ui` on this computer: check a message, inbox, held mail, quarantine. Drafts, the anonymous ring, import/export, and notes are under Advanced. The page follows the system light or dark theme. The Worker homepage is a separate counted-download surface. Worker `/v1/airlock_classify` (alias `/v1/classify`) and `/v1/scrub` are demo HTTP, not an agent door. The classify path uses the FragGate op name `airlock_classify`.
 2. **Agent / MCP — FragGate only.** There is **no separate AZMail MCP**
    outside the door. Do not `POST` this Worker's `/mcp`. Do not invent
    flat `{slug}_{op}` tools. Agents use aziel-runtime FragGate:
@@ -169,14 +142,22 @@ pointer). **STW-1.0** + **CCS-1.0** (`split_the_wires`,
 
 ## CLI
 
+People get short sentences. Add `--json` for the same machine record as before.
+
 ```bash
-azmail version
-azmail ui                 # 127.0.0.1:8876
+azmail
+azmail --help
+azmail ui
 azmail doctor
 azmail classify --from 'a@b.com' --subject hello --body hi
 azmail receive --from 'help@paypa1-verify.com' --subject 'URGENT verify' --body 'reset your password immediately'
 azmail list airlock
 azmail release AM-…
+azmail contact list
+azmail contact add --nickname Sam --address sam@example.com
+azmail contact edit --nickname Sam --address sam@new.example
+azmail contact remove --nickname Sam
+azmail --json classify --from 'a@b.com' --subject hello --body hi
 azmail scrub --html '<script>x</script>'
 azmail import mailbox.json
 azmail export --file mailbox.json

@@ -249,6 +249,25 @@ CHECKS: tuple[Callable[[], Check], ...] = (
 )
 
 
+# Human labels only. JSON check names stay as stored above.
+_HUMAN_CHECK = {
+    "version": "Version",
+    "clean classify": "Clean message",
+    "phish classify": "Phishing-style message",
+    "known-phish quarantine": "Known phishing pattern",
+    "airlock hold": "Hold in the airlock",
+    "confirm gate": "Confirmation gate",
+    "scrub": "HTML scrub",
+    "mesh off-switch": "Anonymous ring off",
+    "keyword alerts": "Keyword alerts",
+    "mesh refuse": "Ring refusal",
+    "mesh law": "Ring rules",
+    "loopback": "Local address only",
+    "no mta": "Local airlock only",
+    "independence": "Runs on its own",
+}
+
+
 def run_doctor(*, as_json: bool = False) -> int:
     results = []
     failed = 0
@@ -259,7 +278,8 @@ def run_doctor(*, as_json: bool = False) -> int:
             failed += 1
         mark = "ok" if ok else "FAIL"
         if not as_json:
-            print(f"[{mark}] {name}" + (f" — {detail}" if detail else ""))
+            label = _HUMAN_CHECK.get(name, name)
+            print(f"[{mark}] {label}" + (f" — {detail}" if detail else ""))
     payload = {
         "ok": failed == 0,
         "failed": failed,
@@ -274,7 +294,8 @@ def run_doctor(*, as_json: bool = False) -> int:
     }
     if as_json:
         print(json.dumps(payload, indent=2))
+    elif failed == 0:
+        print("Doctor passed.")
     else:
-        print("limitation:", LIMITATION)
-        print("doctor", "passed" if failed == 0 else "failed")
+        print("Doctor failed.")
     return 0 if failed == 0 else 1
