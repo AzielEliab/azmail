@@ -208,8 +208,31 @@ def _check_loopback() -> Check:
 
 
 def _check_no_mta() -> Check:
+    from azmail.outbound import RelayConfig, handshake, open_submission, relay_status, submit_message
+
+    status = relay_status(None)
+    if status.get("mta") is not False or status.get("verified") is not False or status.get("configured") is not False:
+        return _fail("no mta", str(status))
+    refused = submit_message(None, b"Subject: x\r\n\r\n", ["person@example.com"])
+    if refused.get("ok") or refused.get("sent") or refused.get("mta"):
+        return _fail("no mta", str(refused))
+    blocked = open_submission(
+        RelayConfig(
+            host="127.0.0.1",
+            port=2525,
+            username="operator",
+            secret="not-a-live-secret",
+            envelope_from="operator@example.com",
+        ),
+        allow_network=False,
+    )[0]
+    if blocked.get("mta") or blocked.get("connected") or blocked.get("reason") != "network_disabled":
+        return _fail("no mta", str(blocked))
+    denied, session = handshake(None, None)
+    if denied.get("mta") or session is not None:
+        return _fail("no mta", str(denied))
     root = Path(__file__).parent
-    banned = ("import smtplib", "smtp.SMTP", "sendmail(", "IMAP4", "import socks")
+    banned = ("IMAP4", "import socks", "SMTPServer", "aiosmtpd")
     for path in root.glob("*.py"):
         if path.name == "doctor.py":
             continue
@@ -217,7 +240,7 @@ def _check_no_mta() -> Check:
         for token in banned:
             if token in text:
                 return _fail("no mta", f"{path.name}: {token}")
-    return _ok("no mta", "stdlib airlock only")
+    return _ok("no mta", "mta false until a relay is configured and verified")
 
 
 def _check_independence() -> Check:
@@ -263,7 +286,7 @@ _HUMAN_CHECK = {
     "mesh refuse": "Ring refusal",
     "mesh law": "Ring rules",
     "loopback": "Local address only",
-    "no mta": "Local airlock only",
+    "no mta": "Send stays off",
     "independence": "Runs on its own",
 }
 

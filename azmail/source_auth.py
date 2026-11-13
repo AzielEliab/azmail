@@ -10,6 +10,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from azmail.dkim import verify_dkim
+from azmail.dmarc import evaluate_dmarc
+from azmail.spf import evaluate_spf, sender_domain
+
 AUTH_RESULTS_RE = re.compile(
     r"\b(spf|dkim|dmarc)=(pass|fail|softfail|neutral|none|temperror|permerror|unknown)\b",
     re.IGNORECASE,
@@ -110,6 +114,15 @@ def advise_source_auth(
     spf_record: str | None = None,
     dmarc_record: str | None = None,
     dkim_signature: str | None = None,
+    client_ip: str | None = None,
+    mail_from: str | None = None,
+    spf_records: dict[str, str] | None = None,
+    dns_answers: dict[str, Any] | None = None,
+    raw_message: bytes | str | None = None,
+    dkim_public_key: str | None = None,
+    dkim_public_keys: dict[tuple[str, str], str] | None = None,
+    public_suffix: str | None = None,
+    now: float | None = None,
 ) -> dict[str, Any]:
     headers = headers or {}
     lowered = {str(k).lower(): v for k, v in headers.items()}
@@ -156,14 +169,121 @@ def advise_source_auth(
     if not auth_header and not received_spf and not dkim_header:
         verdict = "unverified"
 
-    return {
+    evaluation = _evaluate(
+        headers=lowered,
+        spf_record=spf_record,
+        dmarc_record=dmarc_record,
+        client_ip=client_ip,
+        mail_from=mail_from,
+        spf_records=spf_records,
+        dns_answers=dns_answers,
+        raw_message=raw_message,
+        dkim_public_key=dkim_public_key,
+        dkim_public_keys=dkim_public_keys,
+        public_suffix=public_suffix,
+        now=now,
+    )
+    limitation = "Advisory parser only. Live mailbox SPF/DKIM/DMARC needs DNS + keys the operator already has."
+    advisory = True
+    if evaluation is not None:
+        verdict = evaluation["verdict"]
+        advisory = bool(evaluation["advisory"])
+        limitation = (
+            "Verdict is from the records and keys supplied to this call. "
+            "DNS was not queried. Authentication-Results was not treated as a pass."
+        )
+
+    result = {
         "layer": "source_auth",
-        "advisory": True,
+        "advisory": advisory,
         "verdict": verdict,
         "authentication_results": auth,
         "spf_record": spf,
         "dmarc_record": dmarc,
         "dkim_signature": dkim,
         "dkim_aligned": aligned,
-        "limitation": "Advisory parser only. Live mailbox SPF/DKIM/DMARC needs DNS + keys the operator already has.",
+        "limitation": limitation,
     }
+    if evaluation is not None:
+        result["evaluation"] = evaluation
+    return result
+
+
+def _evaluate(
+    *,
+    headers: dict[str, Any],
+    spf_record: str | None,
+    dmarc_record: str | None,
+    client_ip: str | None,
+    mail_from: str | None,
+    spf_records: dict[str, str] | None,
+    dns_answers: dict[str, Any] | None,
+    raw_message: bytes | str | None,
+    dkim_public_key: str | None,
+    dkim_public_keys: dict[tuple[str, str], str] | None,
+    public_suffix: str | None,
+    now: float | None,
+) -> dict[str, Any] | None:
+    if client_ip is None and raw_message is None:
+        return None
+    spf_eval = None
+    dkim_eval = None
+    if client_ip is not None:
+        domain = sender_domain(str(mail_from or headers.get("from") or ""))
+        spf_eval = evaluate_spf(
+            str(client_ip),
+            domain,
+            spf_record if isinstance(spf_record, str) else None,
+            records=spf_records,
+            answers=dns_answers,
+        )
+    if raw_message is not None:
+        dkim_eval = verify_dkim(
+            raw_message,
+            public_key=dkim_public_key,
+            public_keys=dkim_public_keys,
+            now=now,
+        )
+    dmarc_eval = None
+    if dmarc_record and (spf_eval is not None or dkim_eval is not None):
+        signatures = []
+        for item in (dkim_eval or {}).get("signatures") or []:
+            signatures.append({"domain": str(item.get("domain") or ""), "result": str(item.get("result") or "")})
+        dmarc_eval = evaluate_dmarc(
+            from_domain=sender_domain(str(headers.get("from") or "")),
+            record=str(dmarc_record),
+            spf_domain=(spf_eval or {}).get("domain"),
+            spf_result=(spf_eval or {}).get("result"),
+            dkim=signatures,
+            public_suffix=public_suffix,
+        )
+    verdict = _checked_verdict(spf_eval, dkim_eval, dmarc_eval)
+    return {
+        "spf": spf_eval,
+        "dkim": dkim_eval,
+        "dmarc": dmarc_eval,
+        "verdict": verdict,
+        "authoritative": verdict in {"pass", "fail"},
+        "dns_queried": False,
+        "advisory": verdict not in {"pass", "fail"},
+    }
+
+
+def _checked_verdict(
+    spf_eval: dict[str, Any] | None,
+    dkim_eval: dict[str, Any] | None,
+    dmarc_eval: dict[str, Any] | None,
+) -> str:
+    if dmarc_eval is not None:
+        if dmarc_eval.get("result") == "pass":
+            return "pass"
+        if dmarc_eval.get("result") == "fail":
+            return "fail"
+        return "unverified"
+    spf_result = (spf_eval or {}).get("result")
+    dkim_result = (dkim_eval or {}).get("result")
+    if spf_result == "pass" or dkim_result == "pass":
+        return "pass"
+    if spf_result == "fail" or dkim_result == "fail":
+        return "fail"
+    return "unverified"

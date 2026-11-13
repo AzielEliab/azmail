@@ -275,7 +275,7 @@ echo
 echo "Installed AZMail."
 echo "Run: azmail ui"
 echo "Then open http://127.0.0.1:8876 (loopback only)"
-echo "v0.1 does not send internet email. Author: Aziel Eliab."
+echo "This Worker does not send internet email. Author: Aziel Eliab."
 `;
 }
 

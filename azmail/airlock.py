@@ -81,7 +81,7 @@ class Envelope:
 
 def normalize_message(raw: dict[str, Any]) -> dict[str, Any]:
     display, addr = split_from(str(raw.get("from") or raw.get("from_addr") or ""))
-    return {
+    message = {
         "from": addr or str(raw.get("from") or ""),
         "from_display": str(raw.get("from_display") or display),
         "to": str(raw.get("to") or raw.get("to_addr") or ""),
@@ -96,6 +96,19 @@ def normalize_message(raw: dict[str, Any]) -> dict[str, Any]:
         "contacts": raw.get("contacts") or {},
         "history": list(raw.get("history") or []),
     }
+    for key in (
+        "client_ip",
+        "mail_from",
+        "spf_records",
+        "dns_answers",
+        "raw_message",
+        "dkim_public_key",
+        "dkim_public_keys",
+        "public_suffix",
+    ):
+        if raw.get(key) is not None:
+            message[key] = raw.get(key)
+    return message
 
 
 def classify(message: dict[str, Any]) -> Classification:
@@ -108,6 +121,14 @@ def classify(message: dict[str, Any]) -> Classification:
         headers,
         spf_record=msg.get("spf_record"),
         dmarc_record=msg.get("dmarc_record"),
+        client_ip=msg.get("client_ip"),
+        mail_from=msg.get("mail_from"),
+        spf_records=msg.get("spf_records"),
+        dns_answers=msg.get("dns_answers"),
+        raw_message=msg.get("raw_message"),
+        dkim_public_key=msg.get("dkim_public_key"),
+        dkim_public_keys=msg.get("dkim_public_keys"),
+        public_suffix=msg.get("public_suffix"),
     )
     host = domain_of(msg["from"])
     rep = reputation(host, age_days=msg.get("domain_age_days"))

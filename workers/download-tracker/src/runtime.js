@@ -44,9 +44,9 @@ Anti-phishing Mail Airlock (APP 1.0). No message is trusted until verified acros
 
 Author: **Aziel Eliab** only.
 
-**THIS IS:** local airlock + advisory SPF/DKIM/DMARC parsers + reputation / identity / behavior heuristics + link sandbox + HTML scrub + trust badges + user confirmation + mesh *client helpers*.
+**THIS IS:** local airlock + SPF/DKIM/DMARC checks when the operator supplies the records and keys + reputation / identity / behavior heuristics + link sandbox + HTML scrub + trust badges + user confirmation + an operator-gated SMTP submission client + mesh *client helpers*.
 
-**THIS IS NOT:** a public MTA, SMTP/IMAP server, mixnet, VPN, AZ-OS, Lumen, or a guaranteed phishing block. v0.1 does not send internet email.
+**THIS IS NOT:** a public MTA, SMTP/IMAP server, mixnet, VPN, AZ-OS, Lumen, or a guaranteed phishing block. This Worker does not relay mail. Unconfigured installs stay mta false.
 
 Always send \`User-Agent: Mozilla/5.0\`. Cloudflare Workers may 403 an empty agent.
 

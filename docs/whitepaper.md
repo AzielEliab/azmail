@@ -15,18 +15,22 @@ AZMail implements APP as standalone software. It does not require AZ-OS,
 Lumen, or a separate interface product. Cross-links to the Aziel Eliab
 runtime and library are optional.
 
-v0.1 is an honest local product: Mail Airlock, advisory parsers, demo
-compose, and mesh *client helpers*. It is not a public mail transfer
-agent and does not send internet email.
+v0.1 is an honest local product: Mail Airlock, source-auth checks on
+records and keys the operator supplies, demo compose, an operator-gated
+SMTP submission client, and mesh *client helpers*. It is not a public
+mail transfer agent. `mta` stays false until that relay is configured
+and a handshake on the operator's transport succeeds.
 
 ## Layers
 
 ### 1. Source authentication
 
-Parse and validate SPF records, DKIM-Signature tags, DMARC policies, and
+Parse SPF records, DKIM-Signature tags, DMARC policies, and
 `Authentication-Results` / `Received-SPF` headers the operator already
-has. Results are **advisory**. Live DNS and cryptographic DKIM verify
-are out of scope unless the caller supplies the record or key.
+has. When the operator also supplies the client IP, the included SPF
+text, the DKIM public key, or the DMARC public suffix, AZMail evaluates
+those inputs (RFC 7208 / 6376 / 7489). A missing lookup or key is not a
+pass. Live DNS is not queried.
 
 ### 2. Domain reputation
 
@@ -119,9 +123,10 @@ azieleliab.com are documentation only.
 
 ## What this is not
 
-Not a public MTA. Not SMTP/IMAP. Not a mixnet. Not a VPN. Not a
+Not a public MTA. Not an SMTP/IMAP server. Not a mixnet. Not a VPN. Not a
 guaranteed phishing oracle. Not legal advice. Hosted `/v1` does not
-store mail.
+store or relay mail. Local SMTP submission stays off until the operator
+configures a relay and a handshake succeeds.
 
 ## Cite
 

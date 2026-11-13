@@ -20,6 +20,7 @@ from azmail.contacts import (
     resolve_recipient,
 )
 from azmail.doctor import run_doctor
+from azmail.outbound import config_from_env, relay_status
 from azmail.mesh import (
     match_keywords,
     mesh_broadcast,
@@ -77,6 +78,7 @@ Advanced commands:
   mesh       Local anonymous ring (off until you turn it on)
   keywords   Alert words for that ring
   compose    Save a draft on this computer
+  relay      Show whether SMTP submission is configured (does not connect)
   version    Print the version
 
 Add --json for the machine record. People get the sentences above.
@@ -233,6 +235,7 @@ def explain_error(message: str, argv: list[str]) -> tuple[str, str]:
         "export",
         "verify",
         "compose",
+        "relay",
         "version",
         "contact",
     }
@@ -851,6 +854,25 @@ def cmd_compose(ns: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_relay(ns: argparse.Namespace) -> int:
+    status = relay_status(config_from_env())
+    if status.get("configured"):
+        human = (
+            f"Relay settings are present for {status.get('username')} at {status.get('host')}:{status.get('port')}.\n"
+            "mta: false\n"
+            "This command does not connect, so the handshake is not verified."
+        )
+    else:
+        human = (
+            "Relay is not configured.\n"
+            "mta: false\n"
+            "Next: set AZMAIL_RELAY_HOST, AZMAIL_RELAY_PORT, AZMAIL_RELAY_USER, "
+            "AZMAIL_RELAY_SECRET, and AZMAIL_RELAY_FROM on this computer."
+        )
+    _emit(ns, status, human)
+    return 0
+
+
 def _welcome_json() -> dict[str, Any]:
     return {
         "ok": True,
@@ -922,6 +944,9 @@ def build_parser() -> FriendlyParser:
     keywords.add_argument("action", choices=("list", "set", "match"))
     keywords.add_argument("words", nargs="*")
     keywords.add_argument("--text", default="")
+
+    relay = add("relay", "Show whether SMTP submission is configured (does not connect)")
+    relay.add_argument("action", nargs="?", default="status", choices=("status",))
 
     compose = add("compose", "Save a draft on this computer")
     compose.add_argument("--from", dest="sender", default="")
@@ -1011,6 +1036,7 @@ def main(argv: list[str] | None = None) -> int:
         "mesh": cmd_mesh,
         "keywords": cmd_keywords,
         "compose": cmd_compose,
+        "relay": cmd_relay,
         "contact": cmd_contact,
     }
     try:

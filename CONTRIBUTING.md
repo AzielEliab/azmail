@@ -15,12 +15,16 @@ python -m pytest -q
 ```
 
 Python 3.10+. Engine is stdlib only. pytest is the dev extra.
-No network. No ML. Not a public MTA.
+No live DNS. No ML. Not a public MTA. Tests do not send mail.
 
 ## Ground rules
 
-1. **Not a public MTA.** Do not add SMTP send, IMAP scrape, From:
-   rotation, mixnet, or IP masking. v0.1 compose is a local draft.
+1. **Not a public MTA.** Do not add an SMTP server, IMAP scrape, From
+   rotation, mixnet, or IP masking. Outbound mail is submission to an
+   operator relay only (`azmail/outbound.py`). `mta` stays false until
+   that config is complete and `handshake` succeeds on a transport the
+   operator supplied. Do not open a socket unless `allow_network` is
+   true. Compose stays a local draft. The hosted Worker does not relay.
 2. **Mesh stays off by default.** `mesh_disable` must remain an easy
    off-switch. No PII in handles. Refuse doxxing and credential harvest.
 3. **UI binds loopback only** (`127.0.0.1:8876`). Do not listen on
@@ -32,12 +36,15 @@ No network. No ML. Not a public MTA.
 6. **Independence.** Do not import AZ-OS, Lumen, or a required interface
    product. Optional documentation links are fine.
 7. New behavior needs a test that fails without the change.
-8. SPF/DKIM/DMARC stay advisory unless the operator already supplied
-   the record or key. Do not pretend live DNS ran.
+8. SPF/DKIM/DMARC checks run only on records, keys, and addresses the
+   operator already supplied. Do not query live DNS. Do not report pass
+   when a lookup or key was missing.
 
 ## Where to change things
 
 - Airlock: `azmail/airlock.py`
+- SPF / DKIM / DMARC checks: `azmail/spf.py`, `azmail/dkim.py`, `azmail/dmarc.py` (parsers stay in `azmail/source_auth.py`)
+- Operator SMTP submission: `azmail/outbound.py`
 - Reputation / auth / identity / behavior / isolate: matching modules
 - Scrub: `azmail/scrub.py`
 - Mesh helpers: `azmail/mesh.py`
