@@ -210,6 +210,7 @@ try {
   assert.equal(healthBody.ok, true);
   assert.equal(healthBody.product, "azmail");
   assert.equal(healthBody.classify_op, "airlock_classify");
+  assert.equal(healthBody.mta, false);
 
   const meshReq = new Request("https://azmail-download-tracker.vibelock.workers.dev/v1/mesh_disable", {
     method: "POST",

@@ -29,9 +29,9 @@ Same three steps are in [RUN.txt](RUN.txt). Spec: [docs/whitepaper.md](docs/whit
 
 ## Notes
 
-v0.1 is a local airlock, compose, and mesh client helpers. It does not send internet email. Hosted `/v1/airlock_classify` (leftover alias `/v1/classify`) and `/v1/scrub` are advisory demos and are not stored. `/v1/fraggate/*` and `/v1/mesh/*` PROXY to aziel-runtime via the `AZIEL_RUNTIME` service binding. Suite QNM is default OFF (live|locked|isolated). Product-local leftover ring is `POST /v1/mesh_disable`, not `/v1/mesh/*`. **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh cross-map on `workers/download-tracker/src/mesh.js` — not a Softwares-tab product and not a public `qnsd` proxy. **SPLIT THE WIRES (STW-1.0)** and **COLD-COPY SURVIVAL (CCS-1.0)** are locked product-local mesh law in `azmail/mesh.py` and that Worker file. Mesh hop default-off stays. Local `qnsd` is coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime cites live in [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair custody is [AZInterface](https://github.com/AzielEliab/azinterface). Anonymous mesh chat and mail ops run via [aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate ([kernel](https://github.com/AzielEliab/fraggate)). This repo ships the local helpers.
+v0.1 is a local airlock, compose, mesh client helpers, and an operator-gated SMTP submission client. `mta` stays false until that relay is configured and a handshake succeeds. The hosted Worker does not send internet email. Hosted `/v1/airlock_classify` (leftover alias `/v1/classify`) and `/v1/scrub` are advisory demos and are not stored. `/v1/fraggate/*` and `/v1/mesh/*` PROXY to aziel-runtime via the `AZIEL_RUNTIME` service binding. Suite QNM is default OFF (live|locked|isolated). Product-local leftover ring is `POST /v1/mesh_disable`, not `/v1/mesh/*`. **QNS-CD-1.0** (photon QNS1 packet transfer) is a hub cite / Worker mesh cross-map on `workers/download-tracker/src/mesh.js` — not a Softwares-tab product and not a public `qnsd` proxy. **SPLIT THE WIRES (STW-1.0)** and **COLD-COPY SURVIVAL (CCS-1.0)** are locked product-local mesh law in `azmail/mesh.py` and that Worker file. Mesh hop default-off stays. Local `qnsd` is coded in [qnm-node](https://github.com/AzielEliab/qnm-node). Runtime cites live in [aziel-runtime](https://github.com/AzielEliab/aziel-runtime). Pair custody is [AZInterface](https://github.com/AzielEliab/azinterface). Anonymous mesh chat and mail ops run via [aziel-runtime](https://github.com/AzielEliab/aziel-runtime) FragGate ([kernel](https://github.com/AzielEliab/fraggate)). This repo ships the local helpers.
 
-SPF / DKIM / DMARC are advisory parsers of headers and record text you already have. Live DNS is not queried unless you supply the record.
+SPF / DKIM / DMARC headers are still parsed locally. A pass or fail is computed only from an SPF record plus client IP, a DKIM public key, or a DMARC record you already have. Live DNS is not queried.
 
 Speed lines in the spec (&lt;1s inbox delay, parallel scan, real-time link analysis) are targets, not a measured promise in v0.1.
 
@@ -106,7 +106,7 @@ their own.
 
 ## APP 1.0 layers (modeled in code + UI)
 
-1. Source auth — SPF / DKIM / DMARC advisory parsers
+1. Source auth — SPF / DKIM / DMARC checks on records and keys you supply
 2. Domain reputation — lookalike / new domain / known-phish heuristics
 3. Identity continuity — display-name vs address deviation
 4. Behavioral anomaly — urgency, credentials, unexpected attachments, payment language
@@ -163,6 +163,7 @@ azmail import mailbox.json
 azmail export --file mailbox.json
 azmail verify
 azmail mesh disable
+azmail relay status
 ```
 
 ## Tests

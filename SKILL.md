@@ -13,12 +13,14 @@ across identity, origin, structure, and behavior.
 
 Author: **Aziel Eliab** only.
 
-**THIS IS:** local airlock + advisory SPF/DKIM/DMARC parsers + reputation /
-identity / behavior heuristics + link sandbox + HTML scrub + trust badges +
-user confirmation + mesh *client helpers*.
+**THIS IS:** local airlock + SPF/DKIM/DMARC checks when the operator supplies
+the records and keys + reputation / identity / behavior heuristics + link
+sandbox + HTML scrub + trust badges + user confirmation + an operator-gated
+SMTP submission client + mesh *client helpers*.
 
 **THIS IS NOT:** a public MTA, SMTP/IMAP server, mixnet, VPN, AZ-OS, Lumen,
-or a guaranteed phishing block. v0.1 does not send internet email.
+or a guaranteed phishing block. This Worker does not relay mail.
+Unconfigured installs stay mta false.
 
 Always send `User-Agent: Mozilla/5.0`. Cloudflare Workers may 403 an empty agent.
 
@@ -129,9 +131,10 @@ Then open http://127.0.0.1:8876 (this computer only). Import JSON file
 
 ## Honest banner
 
-THIS IS: a local Mail Airlock plus advisory APP 1.0 layers and mesh client
-helpers. THIS IS NOT: a public MTA, SMTP/IMAP server, mixnet, VPN, or a
-guaranteed phishing block. Author: Aziel Eliab only.
+THIS IS: a local Mail Airlock, SPF/DKIM/DMARC checks on records and keys
+the operator supplies, an operator-gated SMTP submission client, and mesh
+client helpers. THIS IS NOT: a public MTA. mta stays false until a relay
+handshake succeeds. This Worker does not relay. Author: Aziel Eliab only.
 
 Apache-2.0. Forks are welcome and always allowed.
 
